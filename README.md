@@ -8,7 +8,7 @@ Run
     
 
 # Example
-Once you have the package installed, you can create tests like this one.
+Once you have the package installed, you can create tests like this one, which uses the well know *OrderFlowers* bot.
 
 ```python
 # -*- coding: utf-8 -*-

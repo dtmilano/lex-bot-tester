@@ -10,7 +10,11 @@ Run
     
 
 # Example
-Once you have the package installed, you can create tests like this one, which uses the well know *OrderFlowers* bot.
+You may be accustom to do this kind of tests in the AWS Lex Console (this example uses the well know *OrderFlowers* bot).
+
+![alt text](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
+
+However, once you have the **lex-bot-tester** installed, you can create tests like this one:
 
 ```python
 # -*- coding: utf-8 -*-

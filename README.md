@@ -44,7 +44,7 @@ BOT_ALIAS = 'OrderFlowersLatest'
 USER_ID = 'ClientId'
 
 
-class LexBotTestTests(LexBotTest):
+class OrderFlowersTests(LexBotTest):
     def test_conversations_text(self):
         lmc = LexModelsClient(BOT_NAME, BOT_ALIAS)
         conversations = []

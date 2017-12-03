@@ -10,7 +10,7 @@ setup(name='lex-bot-tester',
         the available Bots and creates specific Results classes to be used by
         the tests.
         ''',
-      license='GPL',
+      license='GPL-3.0',
       keywords='amazon aws lex bot tester conversation test automation',
       author='Diego Torres Milano',
       author_email='dtmilano@gmail.com',
@@ -21,7 +21,20 @@ setup(name='lex-bot-tester',
       include_package_data=True,
       scripts=[],
       classifiers=['Development Status :: 5 - Production/Stable',
+                   # Indicate who your project is intended for
                    'Intended Audience :: Developers',
-                   'License :: OSI Approved :: GPL'],
+                   'Topic :: Software Development :: Build Tools',
+                   # License
+                   'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
+                   # Specify the Python versions you support here. In particular, ensure
+                   # that you indicate whether you support Python 2, Python 3 or both.
+                   'Programming Language :: Python :: 2',
+                   'Programming Language :: Python :: 2.6',
+                   'Programming Language :: Python :: 2.7',
+                   'Programming Language :: Python :: 3',
+                   'Programming Language :: Python :: 3.2',
+                   'Programming Language :: Python :: 3.3',
+                   'Programming Language :: Python :: 3.4',
+                   ],
       install_requires=['setuptools', 'requests'],
       )

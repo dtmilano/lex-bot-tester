@@ -1,6 +1,6 @@
 #! /bin/bash
 
-pkg=lex-bot-tester
+pkg=lex_bot_tester
 eval $(grep version setup.py | sed 's/,$//')
 tag="v$version"
 git tag "$tag"

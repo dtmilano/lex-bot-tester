@@ -1,0 +1,9 @@
+#! /bin/bash
+
+pkg=lex-bot-tester
+eval $(grep version setup.py | sed 's/,$//')
+tag="v$version"
+git tag "$tag"
+git push --tags
+python setup.py bdist_egg bdist_wheel --universal
+twine upload dist/${pkg}-${version}-*

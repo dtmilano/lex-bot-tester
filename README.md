@@ -16,7 +16,7 @@ You may be familiar with this kind of tests in the *AWS Lex Console* (this examp
 
 ![alt text](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
 
-> More information about these manua; test using the console can be found [here](http://docs.aws.amazon.com/lex/latest/dg/gs2-build-and-test.html)
+> More information about these manual tests using the console can be found [here](http://docs.aws.amazon.com/lex/latest/dg/gs2-build-and-test.html)
 
 However, once you have the **lex-bot-tester** installed, you can create tests like this one:
 

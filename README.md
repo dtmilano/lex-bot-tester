@@ -83,3 +83,11 @@ class OrderFlowersTests(LexBotTest):
 if __name__ == '__main__':
     unittest.main()
 ```
+
+This test, first creates a `LexModelsClient` to inspect the definitions of the bot, its intents and slots to later use a class factory that defines specific classes for each intent which are obtained by `get_result_class_for_intent(i)`.
+
+This result class reference, which extends `ResultBase` class is assigned to the variable `r` for convenience. Then, for each intent, a `Conversation`, consisting of a list of `ConversationItems` is created.
+
+`ConversationItem` specifies the text or utterance sent and the expected result, using the `r` class reference and invoking the constructor with the expected `DialogState` and the values of the `slots`.
+
+`pickup_date` is a particular case, as it is selected as `next Sunday` so instead of looking for a particular value we are checking if it matches a regular expression defining dates.

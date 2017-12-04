@@ -12,7 +12,7 @@ Run
     
 
 # Example
-You may be accustom to do this kind of tests in the AWS Lex Console (this example uses the well know *OrderFlowers* bot).
+You may be familiar with this kind of tests in the *AWS Lex Console* (this example uses the well know *OrderFlowers* bot).
 
 ![alt text](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
 

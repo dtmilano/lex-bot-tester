@@ -1,7 +1,9 @@
 # lex-bot-tester
 **AWS Lex Bot Tester** is a library that simplifies the creation of AWS Lex Bot tests.
 
-Using AWS Lex Models Client this utility inspects the properties of the available Bots and creates specific Results classes to be used by the tests. 
+Using AWS Lex Models Client this utility inspects the properties of the available Bots and creates specific Results classes to be used by the tests.
+
+Certainly, there are ways of testing your bots using AWS CLI as explained in [Test the Bot Using Text Input (AWS CLI)](http://docs.aws.amazon.com/lex/latest/dg/gs-create-test-text.html) but **lex-bot-tester** provides a more concise, type safe and object oriented way of doing it.
 
 # Installation
 Run

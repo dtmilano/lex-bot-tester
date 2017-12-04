@@ -91,3 +91,5 @@ This result class reference, which extends `ResultBase` class is assigned to the
 `ConversationItem` specifies the text or utterance sent and the expected result, using the `r` class reference and invoking the constructor with the expected `DialogState` and the values of the `slots`.
 
 `pickup_date` is a particular case, as it is selected as `next Sunday` so instead of looking for a particular value we are checking if it matches a regular expression defining dates.
+
+Finaly, once the `conversation` list is completed, a call to the helper method `conversations_text` providing this list as an argument completes the test.

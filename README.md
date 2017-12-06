@@ -21,6 +21,7 @@ You may be familiar with this kind of tests in the *AWS Lex Console* (this examp
 However, once you have the **lex-bot-tester** installed, you can create tests like this one:
 
 ```python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 """
     Lex Bot Tester

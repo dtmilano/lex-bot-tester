@@ -106,3 +106,6 @@ The signature of the constructor matches this pattern
             
 
 To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-naming-conventions), keyword args representing slots are named using *snake case* when usually slots are named using *camel case*. Then, for example, the slot `FlowerType` will be represented by its corresponding keyword arg `flower_type`.
+
+# Conversations
+**Conversation** is a list of **ConversationItems**. These **ConversationItems** represent the *send* -> *response* interaction. 

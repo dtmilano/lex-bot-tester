@@ -94,3 +94,15 @@ This result class reference, which extends `ResultBase` class is assigned to the
 `pickup_date` is a particular case, as it is selected as `next Sunday` so instead of looking for a particular value we are checking if it matches a regular expression defining dates.
 
 Finaly, once the `conversation` list is completed, a call to the helper method `conversations_text` providing this list as an argument completes the test.
+
+# Result classes
+As mentioned before, `LexModelsClient.get_result_class_for_intent(intent)` returns the class that represents the response result once the Bot is invoked using the corresponding utterance.
+
+The signature of the constructor matches this pattern
+
+    class MyIntentResult(ResultBase):
+        def __init__(dialog_state, **kwargs):
+            ...
+            
+
+To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-naming-conventions), keyword args representing slots are named using *snake case* when usually slots are named using *camel case*. Then, for example, the slot `FlowerType` will be represented by its corresponding keyword arg `flower_type`.

@@ -109,3 +109,8 @@ To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-na
 
 # Conversations
 **Conversation** is a list of **ConversationItems**. These **ConversationItems** represent the *send* -> *response* interaction. 
+
+    class ConversationItem(object):
+        
+        def __init__(self, send, receive):
+            ...

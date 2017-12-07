@@ -1,0 +1,23 @@
+#! /bin/bash
+
+progname=$(basename $0)
+aws=$(which aws)
+if [[ -z "$aws" ]]
+then
+    echo "$progname: ERROR: cannot find aws command" >&2
+    exit 1
+fi
+jq=$(which jq)
+
+bot_name='OrderFlowers'
+bot_alias='OrderFlowersLatest'
+user_id='ClientId'
+
+post_text()
+{
+    cmd="$aws lex-runtime post-text --bot-name=$bot_name --bot-alias=$bot_alias --user-id=$user_id"
+    $cmd --input-text "$1"
+}
+
+r=$(post_text 'I would like to order some roses')
+echo "$r" | ${jq:-cat -}

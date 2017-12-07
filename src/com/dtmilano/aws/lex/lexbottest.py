@@ -37,6 +37,7 @@ class LexBotTest(TestCase):
         super(LexBotTest, self).tearDown()
 
     def conversations_text(self, bot_name, bot_alias, user_id, conversations):
+        # type: (str, str, str, list) -> None
         """
         Helper method for tests using text conversations.
 
@@ -44,6 +45,17 @@ class LexBotTest(TestCase):
         :param bot_alias: the bot alias
         :param user_id: the user id
         :param conversations: the list of conversations
+
+        Iterates over the list of :py:attr:conversations and each py:class:: ConversationItem, sends the corresponding
+        text and analyzes the response.
+
+        For this response, it asserts that:
+
+        * the intent name is correct
+        * the response is not None
+        * the dialog state is as defined in the item
+        * the slots contain the specified values, as declared in the item
+
         """
         self.csc = LexRuntimeClient(bot_name, bot_alias, user_id)
         for c in conversations:

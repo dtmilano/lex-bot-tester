@@ -114,3 +114,5 @@ To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-na
         
         def __init__(self, send, receive):
             ...
+
+Perhaps, taking a look at [lexbottestertests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/lex/lexbottesttests.py) clarifies the idea. That test, uses the same structure and the classes created by inspecting the models for two different Bots: OrderFlowers and BookTrip.

@@ -1,3 +1,4 @@
+![banner](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/pexels-photo-595804-wide.jpeg)
 # lex-bot-tester
 **AWS Lex Bot Tester** is a library that simplifies the creation of AWS Lex Bot tests.
 
@@ -14,7 +15,7 @@ Run
 # Example
 You may be familiar with this kind of tests in the *AWS Lex Console* (this example uses the well know *OrderFlowers* bot).
 
-![alt text](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
+![test-bot](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
 
 > More information about these manual tests using the console can be found [here](http://docs.aws.amazon.com/lex/latest/dg/gs2-build-and-test.html)
 

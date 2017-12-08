@@ -117,3 +117,6 @@ To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-na
             ...
 
 Perhaps, taking a look at [lexbottestertests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/lex/lexbottesttests.py) clarifies the idea. That test, uses the same structure and the classes created by inspecting the models for two different Bots: OrderFlowers and BookTrip.
+
+# Resources
+* [Creating conversational AWS Lex Bot tests](https://medium.com/@dtmilano/creating-conversational-aws-lex-bot-tests-da84a83fe688)

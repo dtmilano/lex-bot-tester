@@ -6,9 +6,9 @@ eval $(grep version setup.py | sed 's/,$//')
 tag="v$version"
 git tag "$tag"
 git push --tags
-pandoc=$(which pandoc)
 if [[ README.md -ot README.rst ]]
 then
+    pandoc=$(which pandoc)
     if [[ -n "$pandoc" ]]
     then
         $pandoc --from=markdown --to=rst --output=README.rst README.md

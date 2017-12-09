@@ -1,9 +1,18 @@
 #! /bin/bash
 
+set -e
 pkg=lex_bot_tester
 eval $(grep version setup.py | sed 's/,$//')
 tag="v$version"
 git tag "$tag"
 git push --tags
+pandoc=$(which pandoc)
+if [[ README.md -ot README.rst ]]
+then
+    if [[ -n "$pandoc" ]]
+    then
+        $pandoc --from=markdown --to=rst --output=README.rst README.md
+    fi
+fi
 python setup.py bdist_egg bdist_wheel --universal
 twine upload dist/${pkg}-${version}-*

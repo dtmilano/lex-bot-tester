@@ -1,13 +1,22 @@
 #!/usr/bin/env python
 
+import os
+
 from setuptools import setup, find_packages
 
+HERE = os.path.abspath(os.path.dirname(__file__))
+
+README_PATH = os.path.join(HERE, 'README.rst')
+try:
+    with open(README_PATH) as fd:
+        README = fd.read()
+except IOError:
+    README = ''
+
 setup(name='lex-bot-tester',
-      version='0.9.2',
-      description='''lex-bot-tester is a library that simplifies the creation of AWS Lex Bot tests.''',
-      long_description='''Using AWS Lex Models Client this utility inspects the properties of
-        the available Bots and creates specific Results classes to be used by the tests.
-        ''',
+      version='0.9.3',
+      description='''lex-bot-tester is a library that simplifies the creation of Amazon AWS Lex Bot tests.''',
+      long_description=README,
       license='GPL-3.0',
       keywords='amazon aws lex bot tester conversation test automation',
       author='Diego Torres Milano',

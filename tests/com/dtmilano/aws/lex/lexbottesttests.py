@@ -25,6 +25,8 @@ from com.dtmilano.aws.lex.lexbottest import LexBotTest
 from com.dtmilano.aws.lex.lexmodelsclient import LexModelsClient
 from com.dtmilano.aws.lex.lexruntimeclient import DialogState
 
+VERBOSE = False
+
 RE_DATE = re.compile('\d+-\d+-\d+')
 RE_WEEK = re.compile('\d+-w\d+')
 
@@ -55,7 +57,7 @@ class LexBotTestTests(LexBotTest):
                 conversations.append(Conversation(
                     ConversationItem('Cancel', r(DialogState.READY_FOR_FULFILLMENT))
                 ))
-        self.conversations_text(bot_name, bot_alias, user_id, conversations)
+        self.conversations_text(bot_name, bot_alias, user_id, conversations, VERBOSE)
 
     def test_conversations_text_book_car(self):
         bot_name = 'BookTrip'
@@ -75,7 +77,7 @@ class LexBotTestTests(LexBotTest):
                 ('cancel', DialogState.READY_FOR_FULFILLMENT, {})
             ]
         }
-        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition)
+        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition, VERBOSE)
 
 
 if __name__ == '__main__':

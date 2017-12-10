@@ -39,11 +39,12 @@ class LexBotTest(TestCase):
     def tearDown(self):
         super(LexBotTest, self).tearDown()
 
-    def conversations_text(self, bot_name, bot_alias, user_id, conversations):
+    def conversations_text(self, bot_name, bot_alias, user_id, conversations, verbose=VERBOSE):
         # type: (str, str, str, list) -> None
         """
         Helper method for tests using text conversations.
 
+        :param verbose:
         :param bot_name: the bot name
         :param bot_alias: the bot alias
         :param user_id: the user id
@@ -62,7 +63,7 @@ class LexBotTest(TestCase):
         """
         self.csc = LexRuntimeClient(bot_name, bot_alias, user_id)
         for c in conversations:
-            if VERBOSE:
+            if verbose:
                 print("Start conversation")
                 print("------------------")
             for ci in c:
@@ -70,7 +71,7 @@ class LexBotTest(TestCase):
                 before_dialog_state = self.csc.get_dialog_state()
                 before_slots = self.csc.get_slots()
                 slot_to_elicit = self.csc.get_slot_to_elicit()
-                if VERBOSE:
+                if verbose:
                     if before_message:
                         print(Color.colorize(' Bot: {}'.format(before_message), Color.WHITE, Color.BRIGHT_BLUE))
                     print(Color.colorize('User: {}'.format(ci.send), Color.BRIGHT_WHITE, Color.BRIGHT_BLACK))
@@ -120,10 +121,10 @@ class LexBotTest(TestCase):
                     # which has no previous dialog state, we may try...
                     if before_dialog_state == DialogState.ELICIT_SLOT and slot_to_elicit is not None:
                         self.assertEqual(ci.send.lower(), self.csc.get_slot(slot_to_elicit).lower())
-            if VERBOSE:
+            if verbose:
                 print('\n')
 
-    def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition):
+    def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition, verbose=VERBOSE):
         lmc = LexModelsClient(bot_name, bot_alias)
         conversations = []
         for i in lmc.get_intents_for_bot():
@@ -141,4 +142,4 @@ class LexBotTest(TestCase):
                     ci = ConversationItem(cdi[0], rr)
                     c.append(ci)
                 conversations.append(c)
-            self.conversations_text(bot_name, bot_alias, user_id, conversations)
+            self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose)

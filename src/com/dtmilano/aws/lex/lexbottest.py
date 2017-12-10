@@ -22,8 +22,11 @@ import re
 import sys
 from unittest import TestCase
 
-from com.dtmilano.aws.lex.lexruntimeclient import LexRuntimeClient
-from com.dtmilano.util.conversion import to_camel_case
+from com.dtmilano.aws.lex.conversation import Conversation, ConversationItem
+from com.dtmilano.aws.lex.lexmodelsclient import LexModelsClient
+from com.dtmilano.aws.lex.lexruntimeclient import LexRuntimeClient, DialogState
+from com.dtmilano.util.color import Color
+from com.dtmilano.util.conversion import to_camel_case, to_snake_case
 
 VERBOSE = False
 DEBUG = False
@@ -36,11 +39,12 @@ class LexBotTest(TestCase):
     def tearDown(self):
         super(LexBotTest, self).tearDown()
 
-    def conversations_text(self, bot_name, bot_alias, user_id, conversations):
+    def conversations_text(self, bot_name, bot_alias, user_id, conversations, verbose=VERBOSE):
         # type: (str, str, str, list) -> None
         """
         Helper method for tests using text conversations.
 
+        :param verbose:
         :param bot_name: the bot name
         :param bot_alias: the bot alias
         :param user_id: the user id
@@ -59,29 +63,83 @@ class LexBotTest(TestCase):
         """
         self.csc = LexRuntimeClient(bot_name, bot_alias, user_id)
         for c in conversations:
+            if verbose:
+                print("Start conversation")
+                print("------------------")
             for ci in c:
-                if VERBOSE:
-                    print(ci.send)
-                result = ci.receive
+                before_message = self.csc.get_message()
+                before_dialog_state = self.csc.get_dialog_state()
+                before_slots = self.csc.get_slots()
+                slot_to_elicit = self.csc.get_slot_to_elicit()
+                if verbose:
+                    if before_message:
+                        print(Color.colorize(' Bot: {}'.format(before_message), Color.WHITE, Color.BRIGHT_BLUE))
+                    print(Color.colorize('User: {}'.format(ci.send), Color.BRIGHT_WHITE, Color.BRIGHT_BLACK))
+                expected_result = ci.receive
+                if DEBUG:
+                    print('** expected_result={}'.format(expected_result))
+                if before_slots:
+                    # if we haven't specified slots that had a value already, we are assuming that their value didn't
+                    #  change and we complete the expected_result with the previous values
+                    for s in before_slots.keys():
+                        if to_snake_case(s) not in expected_result and before_slots[s]:
+                            if DEBUG:
+                                print('** adding key={} to expected_result with value "{}"'.format(to_snake_case(s),
+                                                                                                   before_slots[s]))
+                            expected_result[to_snake_case(s)] = before_slots[s]
                 if DEBUG:
                     print('Sending: {}'.format(ci.send))
                 response = self.csc.post_text(ci.send)
-                self.assertEqual(result.intent_name, self.csc.get_intent_name())
+                self.assertEqual(expected_result.intent_name, self.csc.get_intent_name())
                 self.assertIsNotNone(response)
                 slots = self.csc.get_slots()
                 if DEBUG:
                     print('\tslots={}'.format(slots))
-                self.assertEqual(result.dialog_state, self.csc.get_dialog_state(),
+                self.assertEqual(expected_result.dialog_state, self.csc.get_dialog_state(),
                                  msg='Invalid dialog state, response={}'.format(response))
-                for rk in result.keys():
-                    try:
-                        e = result[rk]
-                        a = slots[to_camel_case(rk)]
-                        if isinstance(e, re._pattern_type):
-                            self.assertRegexpMatches(a, e)
-                        else:
-                            self.assertEqual(e, a)
-                    except KeyError as ex:
-                        print("ERROR:" + str(ex), file=sys.stderr)
-                        # If it's None we let the slot to be not present
-                        self.assertIsNone(result[rk])
+                if DEBUG:
+                    print(expected_result)
+                    print(response)
+                if len(expected_result) > 0:
+                    for rk in expected_result.keys():
+                        try:
+                            e = expected_result[rk]
+                            a = slots[to_camel_case(rk)]
+                            if isinstance(e, re._pattern_type):
+                                self.assertRegexpMatches(a, e)
+                            else:
+                                self.assertEqual(e, a)
+                        except KeyError as ex:
+                            print('ERROR: rk={} msg={}'.format(rk, str(ex)), file=sys.stderr)
+                            if before_dialog_state == DialogState.ELICIT_SLOT and slot_to_elicit is not None:
+                                self.assertEqual(ci.send.lower(), self.csc.get_slot(slot_to_elicit).lower())
+                            # If it's None we let the slot to be not present
+                            self.assertIsNone(expected_result[rk])
+                else:
+                    # need to know the previous dialog state to know if it was ELICIT_SLOT, however, because
+                    # the only possibility of having an empty results is in the first step of the conversation
+                    # which has no previous dialog state, we may try...
+                    if before_dialog_state == DialogState.ELICIT_SLOT and slot_to_elicit is not None:
+                        self.assertEqual(ci.send.lower(), self.csc.get_slot(slot_to_elicit).lower())
+            if verbose:
+                print('\n')
+
+    def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition, verbose=VERBOSE):
+        lmc = LexModelsClient(bot_name, bot_alias)
+        conversations = []
+        for i in lmc.get_intents_for_bot():
+            r = lmc.get_result_class_for_intent(i)
+            if i in conversation_definition:
+                c = Conversation()
+                for cdi in conversation_definition[i]:
+                    if len(cdi) != 3:
+                        raise AttributeError('Expected item with len=3 (actual len={})'.format(len(cdi)))
+                    kwargs = {}
+                    for k in cdi[2]:
+                        # in case the slot name has been specified in CamelCase we convert to snake_case here
+                        kwargs[to_snake_case(k)] = cdi[2][k]
+                    rr = r(cdi[1], **kwargs)
+                    ci = ConversationItem(cdi[0], rr)
+                    c.append(ci)
+                conversations.append(c)
+            self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose)

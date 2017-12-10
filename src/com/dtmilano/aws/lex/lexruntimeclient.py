@@ -67,6 +67,8 @@ class LexRuntimeClient:
         return self.__response
 
     def get_slots(self):
+        if self.__response is None:
+            return None
         slots = self.__response['slots']
         for k in slots:
             v = slots[k]
@@ -75,19 +77,42 @@ class LexRuntimeClient:
         return slots
 
     def get_slot(self, name):
-        return self.get_slots()[name]
+        if name is not None:
+            return self.get_slots()[name]
+        return None
 
     def get_intent_name(self):
         return self.__response['intentName']
 
     def get_dialog_state(self):
-        return self.__response['dialogState']
+        if self.__response is None:
+            return None
+        try:
+            return self.__response['dialogState']
+        except KeyError:
+            return None
 
     def get_message(self):
-        return self.__response['message']
+        if self.__response is None:
+            return None
+        try:
+            return self.__response['message']
+        except KeyError:
+            return None
 
     def get_slot_to_elicit(self):
-        return self.__response['slotToElicit']
+        """
+        Gets the slot name to elicit.
+        If there's none, return None
+
+        :return: the slot name or None
+        """
+        if self.__response is None:
+            return None
+        try:
+            return self.__response['slotToElicit']
+        except KeyError:
+            return None
 
     def get_response(self):
         return self.__response

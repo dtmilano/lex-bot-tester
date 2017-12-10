@@ -61,33 +61,21 @@ class LexBotTestTests(LexBotTest):
         bot_name = 'BookTrip'
         bot_alias = 'BookTripLatest'
         user_id = 'ClientId'
-        lmc = LexModelsClient(bot_name, bot_alias)
-        conversations = []
-        for i in lmc.get_intents_for_bot():
-            r = lmc.get_result_class_for_intent(i)
-            if i == 'BookCar':
-                conversations.append(Conversation(
-                    ConversationItem('book a car',
-                                     r(DialogState.ELICIT_SLOT)),
-                    ConversationItem('LA', r(DialogState.ELICIT_SLOT, pick_up_city='LA')),
-                    ConversationItem('next week',
-                                     r(DialogState.ELICIT_SLOT, pick_up_city='LA', pick_up_date=RE_WEEK)),
-                    ConversationItem('a month from now',
-                                     r(DialogState.ELICIT_SLOT, pick_up_city='LA', pick_up_date=RE_WEEK,
-                                       return_date=RE_DATE)),
-                    ConversationItem('25', r(DialogState.ELICIT_SLOT, pick_up_city='LA', pick_up_date=RE_WEEK,
-                                             return_date=RE_DATE, driver_age='25')),
-                    ConversationItem('economy', r(DialogState.CONFIRM_INTENT, pick_up_city='LA', pick_up_date=RE_WEEK,
-                                                  return_date=RE_DATE, driver_age='25', car_type='economy')),
-                    ConversationItem('yes',
-                                     r(DialogState.READY_FOR_FULFILLMENT, pick_up_city='LA', pick_up_date=RE_WEEK,
-                                       return_date=RE_DATE, driver_age='25', car_type='economy')),
-                ))
-            elif i == 'Cancel':
-                conversations.append(Conversation(
-                    ConversationItem('Cancel', r(DialogState.READY_FOR_FULFILLMENT))
-                ))
-            self.conversations_text(bot_name, bot_alias, user_id, conversations)
+        conversation_definition = {
+            'BookCar': [
+                ('book a car', DialogState.ELICIT_SLOT, {}),
+                ('LA', DialogState.ELICIT_SLOT, {}),
+                ('next week', DialogState.ELICIT_SLOT, {'pick_up_date': RE_WEEK}),
+                ('a month from now', DialogState.ELICIT_SLOT, {'return_date': RE_DATE}),
+                ('25', DialogState.ELICIT_SLOT, {}),
+                ('economy', DialogState.CONFIRM_INTENT, {}),
+                ('yes', DialogState.READY_FOR_FULFILLMENT, {}),
+            ],
+            'Cancel': [
+                ('cancel', DialogState.READY_FOR_FULFILLMENT, {})
+            ]
+        }
+        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition)
 
 
 if __name__ == '__main__':

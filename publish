@@ -6,7 +6,7 @@ eval $(grep version setup.py | sed 's/,$//')
 tag="v$version"
 git tag "$tag"
 git push --tags
-if [[ README.md -ot README.rst ]]
+if [[ README.md -nt README.rst ]]
 then
     pandoc=$(which pandoc)
     if [[ -n "$pandoc" ]]

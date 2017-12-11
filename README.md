@@ -97,6 +97,32 @@ This result class reference, which extends `ResultBase` class is assigned to the
 
 Finaly, once the `conversation` list is completed, a call to the helper method `conversations_text` providing this list as an argument completes the test.
 
+However, if you are more into a data-driven approach, you can also declare the conversation as a data scructure as shown in the following example.
+
+```python
+    def test_conversations_text_book_car(self):
+        bot_name = 'BookTrip'
+        bot_alias = 'BookTripLatest'
+        user_id = 'ClientId'
+        conversation_definition = {
+            'BookCar': [
+                ('book a car', DialogState.ELICIT_SLOT, {}),
+                ('L.A.', DialogState.ELICIT_SLOT, {}),
+                ('next week', DialogState.ELICIT_SLOT, {'PickUpDate': RE_WEEK}),
+                ('a month from now', DialogState.ELICIT_SLOT, {'ReturnDate': RE_DATE}),
+                ('25', DialogState.ELICIT_SLOT, {}),
+                ('economy', DialogState.CONFIRM_INTENT, {}),
+                ('yes', DialogState.READY_FOR_FULFILLMENT, {}),
+            ],
+            'Cancel': [
+                ('cancel', DialogState.READY_FOR_FULFILLMENT, {})
+            ]
+        }
+        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition, verbose)
+```
+
+Both approaches are identical in functionality, so you can choose the one that suits your taste.
+
 # Result classes
 As mentioned before, `LexModelsClient.get_result_class_for_intent(intent)` returns the class that represents the response result once the Bot is invoked using the corresponding utterance.
 

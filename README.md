@@ -109,6 +109,16 @@ The signature of the constructor matches this pattern
 
 To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-naming-conventions), keyword args representing slots are named using *snake case* when usually slots are named using *camel case*. Then, for example, the slot `FlowerType` will be represented by its corresponding keyword arg `flower_type`.
 
+# Conversations
+**Conversation** is a list of **ConversationItems**. These **ConversationItems** represent the *send* -> *response* interaction. 
+
+    class ConversationItem(object):
+        
+        def __init__(self, send, receive):
+            ...
+
+Perhaps, taking a look at [lexbottestertests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/lex/lexbottesttests.py) clarifies the idea. That test, uses the same structure and the classes created by inspecting the models for two different Bots: OrderFlowers and BookTrip.
+
 # Running the tests
 You can run the tests from your favorite IDE or from the command line.
 
@@ -120,17 +130,7 @@ $ ./lexbottesttests.py --verbose
 
 and you will see an interaction similar to the one presented before.
 
-
-
-# Conversations
-**Conversation** is a list of **ConversationItems**. These **ConversationItems** represent the *send* -> *response* interaction. 
-
-    class ConversationItem(object):
-        
-        def __init__(self, send, receive):
-            ...
-
-Perhaps, taking a look at [lexbottestertests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/lex/lexbottesttests.py) clarifies the idea. That test, uses the same structure and the classes created by inspecting the models for two different Bots: OrderFlowers and BookTrip.
+![term-output](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/term-output.png)
 
 # Resources
 * [Creating conversational AWS Lex Bot tests](https://medium.com/@dtmilano/creating-conversational-aws-lex-bot-tests-da84a83fe688)

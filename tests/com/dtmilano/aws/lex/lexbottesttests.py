@@ -58,7 +58,7 @@ class LexBotTestTests(LexBotTest):
                 conversations.append(Conversation(
                     ConversationItem('Cancel', r(DialogState.READY_FOR_FULFILLMENT))
                 ))
-        self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose)
+        self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose=verbose)
 
     def test_conversations_text_book_car(self):
         bot_name = 'BookTrip'
@@ -78,7 +78,24 @@ class LexBotTestTests(LexBotTest):
                 ('cancel', DialogState.READY_FOR_FULFILLMENT, {})
             ]
         }
-        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition, verbose)
+        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition, verbose, False)
+
+    def test_conversations_text_book_hotel_tts(self):
+        bot_name = 'BookTrip'
+        bot_alias = 'BookTripLatest'
+        user_id = 'ClientId'
+        conversation_definition = {
+            'BookHotel': [
+                ('book a three night stay in London', DialogState.ELICIT_SLOT, {'Location': 'London'}),
+                ('next Monday', DialogState.ELICIT_SLOT, {'CheckInDate': RE_DATE}),
+                ('king', DialogState.CONFIRM_INTENT, {}),
+                ('yes', DialogState.READY_FOR_FULFILLMENT, {}),
+            ],
+            'Cancel': [
+                ('cancel', DialogState.READY_FOR_FULFILLMENT, {})
+            ]
+        }
+        self.conversations_text_helper(bot_alias, bot_name, user_id, conversation_definition, verbose, True)
 
 
 if __name__ == '__main__':

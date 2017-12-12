@@ -40,15 +40,15 @@ class LexBotTest(TestCase):
         super(LexBotTest, self).tearDown()
 
     def conversations_text(self, bot_name, bot_alias, user_id, conversations, verbose=VERBOSE):
-        # type: (str, str, str, list) -> None
+        # type: (str, str, str, list, bool) -> None
         """
         Helper method for tests using text conversations.
 
-        :param verbose:
         :param bot_name: the bot name
         :param bot_alias: the bot alias
         :param user_id: the user id
         :param conversations: the list of conversations
+        :param verbose: produce verbose output
 
         Iterates over the list of :py:attr:conversations and each py:class:: ConversationItem, sends the corresponding
         text and analyzes the response.
@@ -125,6 +125,21 @@ class LexBotTest(TestCase):
                 print('\n')
 
     def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition, verbose=VERBOSE):
+        # type: (str, str, str, list, bool) -> None
+        """
+        Helper method for tests using text conversations.
+
+        :param bot_name: the bot name
+        :param bot_alias: the bot alias
+        :param user_id: the user id
+        :param conversation_definition: the conversation definition list
+        :param verbose: produce verbose output
+
+        Iterates over the :py:attr:conversation_definition list and if there are matching Intents the conversation
+        definition items are extracted and the values are used as arguments to the creation of ConversationItems.
+
+        Finally, conversation_text() is invoked.
+        """
         lmc = LexModelsClient(bot_name, bot_alias)
         conversations = []
         for i in lmc.get_intents_for_bot():

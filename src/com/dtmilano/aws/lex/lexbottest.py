@@ -39,11 +39,12 @@ class LexBotTest(TestCase):
     def tearDown(self):
         super(LexBotTest, self).tearDown()
 
-    def conversations_text(self, bot_name, bot_alias, user_id, conversations, verbose=VERBOSE):
-        # type: (str, str, str, list, bool) -> None
+    def conversations_text(self, bot_name, bot_alias, user_id, conversations, verbose=VERBOSE, use_tts=False):
+        # type: (str, str, str, list, bool, bool) -> None
         """
         Helper method for tests using text conversations.
 
+        :param use_tts:
         :param bot_name: the bot name
         :param bot_alias: the bot alias
         :param user_id: the user id
@@ -74,7 +75,8 @@ class LexBotTest(TestCase):
                 if verbose:
                     if before_message:
                         print(Color.colorize(' Bot: {}'.format(before_message), Color.WHITE, Color.BRIGHT_BLUE))
-                    print(Color.colorize('User: {}'.format(ci.send), Color.BRIGHT_WHITE, Color.BRIGHT_BLACK))
+                    print(Color.colorize('User: {}'.format(ci.send),
+                                         Color.BRIGHT_YELLOW if use_tts else Color.BRIGHT_WHITE, Color.BRIGHT_BLACK))
                 expected_result = ci.receive
                 if DEBUG:
                     print('** expected_result={}'.format(expected_result))
@@ -89,7 +91,10 @@ class LexBotTest(TestCase):
                             expected_result[to_snake_case(s)] = before_slots[s]
                 if DEBUG:
                     print('Sending: {}'.format(ci.send))
-                response = self.csc.post_text(ci.send)
+                if use_tts:
+                    response = self.csc.post_text_to_speech(ci.send)
+                else:
+                    response = self.csc.post_text(ci.send)
                 self.assertEqual(expected_result.intent_name, self.csc.get_intent_name())
                 self.assertIsNotNone(response)
                 slots = self.csc.get_slots()
@@ -105,6 +110,13 @@ class LexBotTest(TestCase):
                         try:
                             e = expected_result[rk]
                             a = slots[to_camel_case(rk)]
+                            self.assertIsNotNone(a,
+                                                 msg='a is None: rk={} e={} a={} send={} elicit={} slots={}'.format(rk,
+                                                                                                                    e,
+                                                                                                                    a,
+                                                                                                                    ci.send,
+                                                                                                                    slot_to_elicit,
+                                                                                                                    slots))
                             if isinstance(e, re._pattern_type):
                                 self.assertRegexpMatches(a, e)
                             else:
@@ -124,8 +136,9 @@ class LexBotTest(TestCase):
             if verbose:
                 print('\n')
 
-    def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition, verbose=VERBOSE):
-        # type: (str, str, str, list, bool) -> None
+    def conversations_text_helper(self, bot_alias, bot_name, user_id, conversation_definition, verbose=VERBOSE,
+                                  use_tts=False):
+        # type: (str, str, str, dict, bool, bool) -> None
         """
         Helper method for tests using text conversations.
 
@@ -134,6 +147,7 @@ class LexBotTest(TestCase):
         :param user_id: the user id
         :param conversation_definition: the conversation definition list
         :param verbose: produce verbose output
+        :param use_tts:
 
         Iterates over the :py:attr:conversation_definition list and if there are matching Intents the conversation
         definition items are extracted and the values are used as arguments to the creation of ConversationItems.
@@ -157,4 +171,4 @@ class LexBotTest(TestCase):
                     ci = ConversationItem(cdi[0], rr)
                     c.append(ci)
                 conversations.append(c)
-            self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose)
+            self.conversations_text(bot_name, bot_alias, user_id, conversations, verbose, use_tts)

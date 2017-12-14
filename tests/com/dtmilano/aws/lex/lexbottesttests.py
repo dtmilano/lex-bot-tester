@@ -66,7 +66,7 @@ class LexBotTestTests(LexBotTest):
         user_id = 'ClientId'
         conversation_definition = {
             'BookCar': [
-                ('book a car', DialogState.ELICIT_SLOT, {}),
+                ('reserve a car', DialogState.ELICIT_SLOT, {}),
                 ('L.A.', DialogState.ELICIT_SLOT, {}),
                 ('next week', DialogState.ELICIT_SLOT, {'PickUpDate': RE_WEEK}),
                 ('a month from now', DialogState.ELICIT_SLOT, {'ReturnDate': RE_DATE}),

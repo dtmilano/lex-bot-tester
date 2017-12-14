@@ -28,7 +28,7 @@ class PollyClient:
     def __init__(self):
         self.__client = boto3.client('polly')
         self.output_format = 'pcm'
-        self.voice_id = 'Marlene'
+        self.voice_id = 'Nicole'
 
     def synthesize_speech(self, text):
         return self.__client.synthesize_speech(Text=text, OutputFormat=self.output_format, VoiceId=self.voice_id)

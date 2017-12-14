@@ -111,12 +111,14 @@ class LexBotTest(TestCase):
                             e = expected_result[rk]
                             a = slots[to_camel_case(rk)]
                             self.assertIsNotNone(a,
-                                                 msg='a is None: rk={} e={} a={} send={} elicit={} slots={}'.format(rk,
-                                                                                                                    e,
-                                                                                                                    a,
-                                                                                                                    ci.send,
-                                                                                                                    slot_to_elicit,
-                                                                                                                    slots))
+                                                 msg='{} slot is None: rk={} e={} a={} send="{}" elicit={} slots={}'.format(
+                                                     to_camel_case(rk),
+                                                     rk,
+                                                     e,
+                                                     a,
+                                                     ci.send,
+                                                     slot_to_elicit,
+                                                     slots))
                             if isinstance(e, re._pattern_type):
                                 self.assertRegexpMatches(a, e)
                             else:

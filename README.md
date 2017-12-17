@@ -160,3 +160,4 @@ and you will see an interaction similar to the one presented before.
 
 # Resources
 * [Creating conversational AWS Lex Bot tests](https://medium.com/@dtmilano/creating-conversational-aws-lex-bot-tests-da84a83fe688)
+* [Improving conversational AWS Lex Bot tests](https://medium.com/@dtmilano/improving-conversational-aws-lex-bot-tests-6d041437a05f)

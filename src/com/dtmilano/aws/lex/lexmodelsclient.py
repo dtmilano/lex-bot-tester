@@ -3,6 +3,8 @@ import boto3
 from com.dtmilano.aws.lex.resultbase import ResultBase
 from com.dtmilano.util.conversion import to_snake_case
 
+DEBUG = False
+
 
 def class_factory(name, arg_names, base_class=ResultBase):
     """
@@ -70,8 +72,13 @@ class LexModelsClient:
         intent_names = self.get_intents_for_bot(bot_name, bot_alias)
         for ina in intent_names:
             intent = self.get_intent(ina)
-            result_name = intent['name'].encode('ascii', 'ignore') + 'Result'
+            result_name = str(intent['name'].encode('ascii', 'ignore')) + 'Result'
             slots = intent['slots']
+            if DEBUG:
+                for s in slots:
+                    print('>>>>>>> name = {} {} {}'.format(s['name'], type(s['name']),
+                                                           s['name'].encode('ascii', 'ignore'),
+                                                           type((s['name'].encode('ascii', 'ignore')))))
             slot_names = [to_snake_case(s['name'].encode('ascii', 'ignore')) for s in slots]
             if bot_name not in self.__result_classes:
                 self.__result_classes[bot_name] = {}

@@ -29,6 +29,8 @@ from time import sleep
 
 import requests
 
+from com.dtmilano.util.conversion import number_to_words
+
 
 class Request:
     class Method:
@@ -42,6 +44,69 @@ class Response:
         IN_PROGRESS = 'IN_PROGRESS'
         SUCCESSFUL = 'SUCCESSFUL'
         FAILED = 'FAILED'
+
+
+class Slot:
+    def __init__(self, slot):
+        self.__slot = slot
+
+    def get_name(self):
+        return self.__slot['name']
+
+    def is_elicitation_required(self):
+        return self.__slot['elicitationRequired']
+
+    def get_prompts(self):
+        return self.__slot['prompts']
+
+    def get_elicitation(self):
+        return self.__slot['prompts']['elicitation']
+
+    def get_type(self):
+        return self.__slot['type']
+
+    def is_confirmation_required(self):
+        return self.__slot['confirmationRequired']
+
+
+class Prompt:
+    def __init__(self, prompt):
+        self.__prompt = prompt
+
+    def get_id(self):
+        return self.__prompt['id']
+
+    def get_variations(self):
+        print('get_variations()')
+        print('get_variations: {}'.format(self.__prompt))
+        return self.__prompt['variations']
+
+    def get_variation(self, __type='PlainText'):
+        for v in self.get_variations():
+            if v['type'] == __type:
+                return v['value']
+        return None
+
+
+class InteractionModel:
+    def __init__(self, asmc):
+        self.__interaction_model = asmc.get_interaction_model()
+
+    def get_slots_for_intent(self, intent):
+        for i in self.__interaction_model['interactionModel']['dialog']['intents']:
+            if i['name'] == intent:
+                slots = []
+                for s in i['slots']:
+                    slots.append(Slot(s))
+                # return i['slots']
+                return slots
+        return None
+
+    def get_prompts(self):
+        prompts = []
+        for p in self.__interaction_model['interactionModel']['prompts']:
+            prompts.append(Prompt(p))
+        return prompts
 
 
 class AlexaSkillManagementClient:
@@ -73,24 +138,27 @@ class AlexaSkillManagementClient:
         request = '/v0/skills/{skillId}/interactionModel/locales/{locale}'.format(skillId=self.__skill_id,
                                                                                   locale=self.__locale)
         r = self.__request(request, method=method, debug=False)
-        pprint(r)
-        if r:
+        return r
+
+    def print_interation_model(self, interaction_model):
+        pprint(interaction_model)
+        if interaction_model:
             print('dialog')
-            intents = r['interactionModel']['dialog']['intents']
+            intents = interaction_model['interactionModel']['dialog']['intents']
             for i in intents:
                 print(i['name'])
                 for s in i['slots']:
                     print('\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired']))
                     for p in s['prompts'].keys():
                         v = s['prompts'][p]
-                        for p2 in r['interactionModel']['prompts']:
+                        for p2 in interaction_model['interactionModel']['prompts']:
                             if p2['id'] == v:
                                 for v2 in p2['variations']:
                                     if v2['type'] == 'PlainText':
                                         print('\t\t{}'.format(v2['value']))
             print()
             print('languageModel')
-            intents = r['interactionModel']['languageModel']['intents']
+            intents = interaction_model['interactionModel']['languageModel']['intents']
             for i in intents:
                 print(i['name'])
         else:
@@ -197,24 +265,42 @@ class AlexaSkillManagementClient:
                     print('ERROR: {}'.format(r), file=sys.stderr)
 
     def __get_simulation(self, simulation_id, debug=False):
+        """
+        Gets the simulation for the specified simulation_id.
+
+        :param simulation_id: the simulation id
+        :param debug: enable debug
+        :return: the response, reprompt object
+        """
         method = Request.Method.GET
         request = '/v0/skills/{skillId}/simulations/{simulationId}'.format(skillId=self.__skill_id,
                                                                            simulationId=simulation_id)
         sleep(1)
-        attempt = 5
+        attempt = 7
         while attempt > 0:
             r = self.__request(request, None, method, debug)
             if r['status'] == Response.Status.SUCCESSFUL:
                 break
             if r['status'] == Response.Status.FAILED:
-                print('ERROR: {}'.format(r), file=sys.stderr)
-                return
+                raise RuntimeError('ERROR: {}'.format(r))
             if r['status'] == Response.Status.IN_PROGRESS:
                 attempt -= 1
                 sleep(1)
 
         if attempt == 0:
             raise RuntimeError('Could not get simulation with id={}'.format(simulation_id))
+        try:
+            directives = r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['directives'][
+                0]['type']
+        except KeyError:
+            directives = None
+        except IndexError:
+            directives = None
+        try:
+            should_end_session = r['result']['skillExecutionInfo']['invocationResponse']['body']['response'][
+                'shouldEndSession']
+        except KeyError:
+            should_end_session = None
         try:
             response = r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['outputSpeech'][
                 'ssml']
@@ -226,59 +312,38 @@ class AlexaSkillManagementClient:
                     'ssml']
         except KeyError:
             reprompt = None
-        return {'response': response, 'reprompt': reprompt}
+        try:
+            fulfilled = True
+            slots = r['result']['skillExecutionInfo']['invocationRequest']['body']['request']['intent']['slots']
+            for s in slots:
+                if not ('value' in slots[s] and slots[s]['value']):
+                    fulfilled = False
+                    break
+        except KeyError:
+            fulfilled = None
+
+        return {'directives': directives, 'shouldEndSession': should_end_session, 'response': response,
+                'reprompt': reprompt,
+                'fulfilled': fulfilled, 'slots': slots}
 
     def simulation(self, text, debug=False):
+        """
+        Starts a simulation sending the specified text.
+
+        :param text: the text to send
+        :param debug: enable debug
+        :return: the simulation
+        """
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/simulations'.format(skillId=self.__skill_id)
         body = {'input': {'content': text}, 'device': {'locale': self.__locale}}
-        print('>>> saying: {}'.format(text))
+        print('\x1b[35m>>> saying: {}\x1b[0m'.format(text))
         r = self.__request(request, body, method, debug)
         if r['status'] == Response.Status.IN_PROGRESS:
             simulation_id = r['id']
             return self.__get_simulation(simulation_id, debug)
         else:
             raise RuntimeError('{}'.format(r))
-
-    def conversation(self, conversation, debug=False):
-        if not isinstance(conversation, list):
-            raise ValueError('conversation should be a list of strings')
-        rere = None
-        lowest = 1
-        highest = 100
-        for text in conversation:
-            if text == '$random':
-                text = self.n2w(random.randint(1, 100))
-            elif text == '$guess':
-                if rere:
-                    print('searching "{}" for number and condition'.format(rere['response']))
-                    m = re.search('.*?(\d+) is correct.*', rere['response'])
-                    if m:
-                        print('***** {} is correct !!! *****'.format(m.group(1)))
-                        break
-                    m = re.search('.*?(\d+) is too (\w+).*', rere['response'])
-                    if m:
-                        n = int(m.group(1))
-                        w = m.group(2)
-                        if w == 'high':
-                            highest = n
-                            randint = random.randint(lowest, highest)
-                            text = self.n2w(randint)
-                            print('{} is top high, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest,
-                                                                                        highest))
-                        else:
-                            lowest = n
-                            randint = random.randint(lowest + 1, highest)
-                            text = self.n2w(randint)
-                            print(
-                                '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
-                    else:
-                        raise RuntimeError('rere = {}'.format(rere))
-                else:
-                    text = self.n2w(random.randint(1, 100))
-            rere = self.simulation(text, debug)
-            print(re.sub('<.*?speak>', '', rere['response']))
-            print(re.sub('<.*?speak>', '', rere['reprompt']))
 
     def __request(self, request, body=None, method=Request.Method.GET, debug=False):
         headers = {'Authorization': self.__access_token,
@@ -316,45 +381,114 @@ class AlexaSkillManagementClient:
         return r.json()
 
     @staticmethod
-    def get_skill_id(skill_name, locale='en-US'):
+    def get_skill_id(skill_name, locale='en-US', debug=False):
         alexa_skills = json.loads(open(str(pathlib.Path.home()) + '/.alexa_skills').read())['skills']
         for s in alexa_skills:
-            print('s={}'.format(s))
+            if debug:
+                print('DEBUG: s={}'.format(s))
             if s['nameByLocale'][locale] == skill_name:
                 return s['skillId']
         return None
 
-    @staticmethod
-    def n2w(n):
-        """
-        Converts the number to words.
-        Supported range is [0..99].
 
-        :param n: the number
-        :return: the words representing the number (i.e. forty one)
+def high_low_game(alexa_skill_management_client, debug=False):
+    # if not isinstance(conversation, list):
+    #     raise ValueError('conversation should be a list of strings')
+    conversation = ['start high low game', 'yes', 'twenty four', '$random',
+                    '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
+                    '$guess', '$guess', '$guess', '$guess']
+    rere = None
+    lowest = 1
+    highest = 100
+    for text in conversation:
+        if text == '$random':
+            text = number_to_words(random.randint(1, 100))
+        elif text == '$guess':
+            if rere:
+                print('searching "{}" for number and condition'.format(rere['response']))
+                m = re.search('.*?(\d+) is correct.*', rere['response'])
+                if m:
+                    print('***** {} is correct !!! *****'.format(m.group(1)))
+                    break
+                m = re.search('.*?(\d+) is too (\w+).*', rere['response'])
+                if m:
+                    n = int(m.group(1))
+                    w = m.group(2)
+                    if w == 'high':
+                        highest = n
+                        randint = random.randint(lowest, highest)
+                        text = number_to_words(randint)
+                        print('{} is top high, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest,
+                                                                                    highest))
+                    else:
+                        lowest = n
+                        randint = random.randint(lowest + 1, highest)
+                        text = number_to_words(randint)
+                        print(
+                            '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
+                else:
+                    raise RuntimeError('rere = {}'.format(rere))
+            else:
+                text = number_to_words(random.randint(1, 100))
+        rere = alexa_skill_management_client.simulation(text, debug)
+        print(re.sub('<.*?speak>', '', rere['response']))
+        print(re.sub('<.*?speak>', '', rere['reprompt']))
 
-        :see https://stackoverflow.com/questions/19504350/how-to-convert-numbers-to-words-in-python
-        """
-        num2words = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five',
-                     6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten',
-                     11: 'Eleven', 12: 'Twelve', 13: 'Thirteen', 14: 'Fourteen',
-                     15: 'Fifteen', 16: 'Sixteen', 17: 'Seventeen', 18: 'Eighteen',
-                     19: 'Nineteen', 20: 'Twenty', 30: 'Thirty', 40: 'Forty',
-                     50: 'Fifty', 60: 'Sixty', 70: 'Seventy', 80: 'Eighty',
-                     90: 'Ninety', 0: 'Zero'}
+
+def reserve_a_car(alexa_skill_management_client, debug=False):
+    # if not isinstance(conversation, list):
+    #     raise ValueError('conversation should be a list of strings')
+    intent = 'BookCar'
+    interaction_model = InteractionModel(alexa_skill_management_client)
+    slots = interaction_model.get_slots_for_intent(intent)
+    prompts = {}
+    for s in slots:
+        if s.is_elicitation_required():
+            e = s.get_elicitation()
+            for p in interaction_model.get_prompts():
+                if p.get_id() == e:
+                    v = p.get_variation('PlainText')
+                    if v:
+                        prompts[s.get_name()] = v
+                    else:
+                        print("No prompt variations of type 'PlainText'", file=sys.stderr)
+
+    conversation = [
+        {'slot': None, 'text': 'ask book my trip to reserve a car'},
+        {'slot': 'CarType', 'text': 'midsize'},
+        {'slot': 'PickUpCity', 'text': 'buenos aires'},
+        {'slot': 'PickUpDate', 'text': 'tomorrow'},
+        {'slot': 'ReturnDate', 'text': 'five days from now'},
+        {'slot': 'DriverAge', 'text': 'twenty five'},
+        {'slot': None, 'text': 'yes'}
+    ]
+
+    forgive = True
+    rere = None
+    for c in conversation:
+        slot = c['slot']
+        text = c['text']
         try:
-            return num2words[n].lower()
-        except KeyError:
-            try:
-                return num2words[n - n % 10].lower() + ' ' + num2words[n % 10].lower()
-            except KeyError:
-                raise ValueError('Number out of range. Valid range [0..99]')
+            if slot:
+                print(prompts[slot])
+            rere = alexa_skill_management_client.simulation(text, debug)
+            if slot:
+                print(rere['slots'][slot]['value'])
+            print()
+        except RuntimeError as ex:
+            if forgive:
+                forgive = False
+            else:
+                raise ex
+        sleep(1)
+    if not rere['fulfilled']:
+        print('ERROR: some slots have no values:\n{}\n'.format(rere['slots']), file=sys.stderr)
 
 
 def main():
     # skill_name = 'Aristo'
-    # skill_name = 'BookMyTripSkill'
-    skill_name = 'High Low Game'
+    skill_name = 'BookMyTripSkill'
+    # skill_name = 'High Low Game'
     conversation = {'BookMyTripSkill': 'ask book my trip to reserve a car',
                     'High Low Game': ['start high low game', 'yes', 'twenty four', '$random',
                                       '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
@@ -367,13 +501,14 @@ def main():
     # print('\netag')
     # asmc.get_interaction_model_etag()
     # print('\nmodel')
-    # asmc.get_interaction_model()
+    # asmc.print_interation_model(asmc.get_interaction_model())
     # print('\ninvocation')
     # asmc.invocation()
     # print('\nsimulation')
     # asmc.simulation(conversation[skill_name][0], debug=False)
     print('\nconversation')
-    asmc.conversation(conversation[skill_name], debug=False)
+    # high_low_game(asmc)
+    reserve_a_car(asmc, debug=False)
     # asmc.simulation('start book my trip', debug=True)
     # # asmc.simulation('verdura', debug=True)
 

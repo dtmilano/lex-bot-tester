@@ -77,8 +77,6 @@ class Prompt:
         return self.__prompt['id']
 
     def get_variations(self):
-        print('get_variations()')
-        print('get_variations: {}'.format(self.__prompt))
         return self.__prompt['variations']
 
     def get_variation(self, __type='PlainText'):
@@ -90,7 +88,7 @@ class Prompt:
 
 class InteractionModel:
     def __init__(self, asmc):
-        self.__interaction_model = asmc.get_interaction_model()
+        self.__interaction_model = asmc.obtain_interaction_model()
 
     def get_slots_for_intent(self, intent):
         for i in self.__interaction_model['interactionModel']['dialog']['intents']:
@@ -106,6 +104,26 @@ class InteractionModel:
         prompts = []
         for p in self.__interaction_model['interactionModel']['prompts']:
             prompts.append(Prompt(p))
+        return prompts
+
+    def get_prompt_variation_by_elicitation(self, elicitation, __type='PlainText'):
+        for p in self.get_prompts():
+            if p.get_id() == elicitation:
+                v = p.get_variation('PlainText')
+                if v:
+                    return v
+                else:
+                    print("No prompt variations of type '{}'".format(__type), file=sys.stderr)
+        return None
+
+    def get_prompts_by_intent(self, intent):
+        slots = self.get_slots_for_intent(intent)
+        prompts = {}
+        for s in slots:
+            if s.is_elicitation_required():
+                e = s.get_elicitation()
+                v = self.get_prompt_variation_by_elicitation(e)
+                prompts[s.get_name()] = v
         return prompts
 
 
@@ -127,12 +145,15 @@ class AlexaSkillManagementClient:
         else:
             self.__access_token = cli_config['profiles']['default']['token']['access_token']
 
+    def get_interaction_model(self):
+        return InteractionModel(self)
+
     def get_skill_info(self):
         method = Request.Method.GET
         request = '/v0/skills/{}'.format(self.__skill_id)
         print(self.__request(request, method=method))
 
-    def get_interaction_model(self):
+    def obtain_interaction_model(self):
         # GET /v0/skills/{skillId}/interactionModel/locales/{locale}
         method = Request.Method.GET
         request = '/v0/skills/{skillId}/interactionModel/locales/{locale}'.format(skillId=self.__skill_id,
@@ -345,6 +366,35 @@ class AlexaSkillManagementClient:
         else:
             raise RuntimeError('{}'.format(r))
 
+    def conversation_step(self, step, debug):
+        """
+        Moves the conversation one step.
+
+        :param step:
+        :param debug:
+        :return:
+        """
+        forgive = True
+        slot = step['slot']
+        prompt = step['prompt']
+        text = step['text']
+        rere = None
+
+        while forgive:
+            try:
+                if prompt:
+                    print(prompt)
+                rere = self.simulation(text, debug)
+                if slot:
+                    print(rere['slots'][slot]['value'])
+                print()
+            except RuntimeError as ex:
+                if forgive:
+                    forgive = False
+                else:
+                    raise ex
+        return rere
+
     def __request(self, request, body=None, method=Request.Method.GET, debug=False):
         headers = {'Authorization': self.__access_token,
                    'Content-Type': 'application/json',
@@ -436,50 +486,22 @@ def high_low_game(alexa_skill_management_client, debug=False):
 
 
 def reserve_a_car(alexa_skill_management_client, debug=False):
-    # if not isinstance(conversation, list):
-    #     raise ValueError('conversation should be a list of strings')
     intent = 'BookCar'
-    interaction_model = InteractionModel(alexa_skill_management_client)
-    slots = interaction_model.get_slots_for_intent(intent)
-    prompts = {}
-    for s in slots:
-        if s.is_elicitation_required():
-            e = s.get_elicitation()
-            for p in interaction_model.get_prompts():
-                if p.get_id() == e:
-                    v = p.get_variation('PlainText')
-                    if v:
-                        prompts[s.get_name()] = v
-                    else:
-                        print("No prompt variations of type 'PlainText'", file=sys.stderr)
-
+    interaction_model = alexa_skill_management_client.get_interaction_model()
+    prompts = interaction_model.get_prompts_by_intent(intent)
     conversation = [
-        {'slot': None, 'text': 'ask book my trip to reserve a car'},
-        {'slot': 'CarType', 'text': 'midsize'},
-        {'slot': 'PickUpCity', 'text': 'buenos aires'},
-        {'slot': 'PickUpDate', 'text': 'tomorrow'},
-        {'slot': 'ReturnDate', 'text': 'five days from now'},
-        {'slot': 'DriverAge', 'text': 'twenty five'},
-        {'slot': None, 'text': 'yes'}
+        {'slot': None, 'prompt': None, 'text': 'ask book my trip to reserve a car'},
+        {'slot': 'CarType', 'prompt': prompts['CarType'], 'text': 'midsize'},
+        {'slot': 'PickUpCity', 'prompt': prompts['PickUpCity'], 'text': 'buenos aires'},
+        {'slot': 'PickUpDate', 'prompt': prompts['PickUpDate'], 'text': 'tomorrow'},
+        {'slot': 'ReturnDate', 'prompt': prompts['ReturnDate'], 'text': 'five days from now'},
+        {'slot': 'DriverAge', 'prompt': prompts['DriverAge'], 'text': 'twenty five'},
+        {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
     ]
 
-    forgive = True
     rere = None
     for c in conversation:
-        slot = c['slot']
-        text = c['text']
-        try:
-            if slot:
-                print(prompts[slot])
-            rere = alexa_skill_management_client.simulation(text, debug)
-            if slot:
-                print(rere['slots'][slot]['value'])
-            print()
-        except RuntimeError as ex:
-            if forgive:
-                forgive = False
-            else:
-                raise ex
+        rere = alexa_skill_management_client.conversation_step(c, debug)
         sleep(1)
     if not rere['fulfilled']:
         print('ERROR: some slots have no values:\n{}\n'.format(rere['slots']), file=sys.stderr)
@@ -501,7 +523,7 @@ def main():
     # print('\netag')
     # asmc.get_interaction_model_etag()
     # print('\nmodel')
-    # asmc.print_interation_model(asmc.get_interaction_model())
+    # asmc.print_interation_model(asmc.obtain_interaction_model())
     # print('\ninvocation')
     # asmc.invocation()
     # print('\nsimulation')

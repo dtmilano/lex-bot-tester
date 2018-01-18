@@ -186,7 +186,7 @@ class AlexaSkillManagementClient:
         expires_at = datetime.strptime(cli_config['profiles']['default']['token']['expires_at'],
                                        '%Y-%m-%dT%H:%M:%S.%fZ')
         if expires_at < datetime.utcnow():
-            raise RuntimeError('ASK access token is expired.')
+            raise RuntimeError("ASK access token is expired.\nYou can run 'ask cli list-skills' to refresh it.")
         else:
             self.__access_token = cli_config['profiles']['default']['token']['access_token']
 
@@ -414,7 +414,8 @@ class AlexaSkillManagementClient:
                     print(prompt)
                 simulation_result = self.simulation(text, verbose, debug)
                 if verbose and simulation_result and slot:
-                    print(Color.colorize('<<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE))
+                    print(Color.colorize('<<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
+                                         Color.BRIGHT_BLACK))
                 if verbose:
                     print()
             except RuntimeError as ex:
@@ -461,7 +462,8 @@ class AlexaSkillManagementClient:
 
     @staticmethod
     def get_skill_id(skill_name, locale='en-US', debug=False):
-        alexa_skills = json.loads(open(str(pathlib.Path.home()) + '/.alexa_skills').read())['skills']
+        with open(str(pathlib.Path.home()) + '/.alexa_skills') as f:
+            alexa_skills = json.loads(f.read())['skills']
         for s in alexa_skills:
             if debug:
                 print('DEBUG: s={}'.format(s))

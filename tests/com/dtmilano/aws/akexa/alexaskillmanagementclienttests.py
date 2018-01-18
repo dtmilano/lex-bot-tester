@@ -26,7 +26,10 @@ import unittest
 
 from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
 from com.dtmilano.aws.alexa.alexaskilltest import AlexaSkillTest
+from com.dtmilano.util.color import Color
 from com.dtmilano.util.conversion import number_to_words
+
+DEBUG = False
 
 
 class AlexaSkillManagementClientTests(AlexaSkillTest):
@@ -53,15 +56,18 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         simulation_result = None
         lowest = 1
         highest = 100
+        found = False
         for text in conversation:
             if text == '$random':
                 text = number_to_words(random.randint(1, 100))
             elif text == '$guess':
                 if simulation_result:
-                    print('searching "{}" for number and condition'.format(simulation_result.get_response()))
+                    if DEBUG:
+                        print('searching "{}" for number and condition'.format(simulation_result.get_response()))
                     m = re.search('.*?(\d+) is correct.*', simulation_result.get_response())
                     if m:
-                        print('***** {} is correct !!! *****'.format(m.group(1)))
+                        print(Color.colorize('* {} is correct !!! *'.format(m.group(1)), Color.BRIGHT_GREEN))
+                        found = True
                         break
                     m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_response())
                     if m:
@@ -80,12 +86,13 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
                             print(
                                 '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
                     else:
-                        raise RuntimeError('simulation_result = {}'.format(simulation_result))
+                        self.fail('simulation_result = {}'.format(simulation_result))
                 else:
                     text = number_to_words(random.randint(1, 100))
             simulation_result = asmc.simulation(text, verbose=True)
             print(re.sub('<.*?speak>', '', simulation_result.get_response()))
             print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
+        self.assertIs(found, True)
 
 
 if __name__ == '__main__':

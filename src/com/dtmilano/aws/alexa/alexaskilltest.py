@@ -70,6 +70,7 @@ class AlexaSkillTest(TestCase):
         simulation_result = None
         fulfilled = False
         if verbose:
+            print('\n')
             print("Start conversation")
             print("------------------")
         for c in conversation:

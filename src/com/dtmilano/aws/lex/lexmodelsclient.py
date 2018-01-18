@@ -1,3 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+    Lex Bot Tester
+    Copyright (C) 2017  Diego Torres Milano
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+from __future__ import print_function
+
+import sys
+
 import boto3
 
 from com.dtmilano.aws.lex.resultbase import ResultBase
@@ -27,7 +49,7 @@ def class_factory(name, arg_names, base_class=ResultBase):
             setattr(self, key, value)
         base_class.__init__(self, name[:-len("Class")], name[:-len('Result')], dialog_state, **kwargs)
 
-    new_class = type(name, (base_class,), {"__init__": __init__})
+    new_class = type(str(name), (base_class,), {"__init__": __init__})
     return new_class
 
 
@@ -65,14 +87,20 @@ class LexModelsClient:
         intents = b['intents']
         li = []
         for i in intents:
-            li.append(i['intentName'])
+            intent_name = i['intentName']
+            if type(intent_name) == bytes:
+                intent_name = intent_name.decode()
+            li.append(intent_name)
         return li
 
     def create_result_classes(self, bot_name, bot_alias):
         intent_names = self.get_intents_for_bot(bot_name, bot_alias)
         for ina in intent_names:
             intent = self.get_intent(ina)
-            result_name = str(intent['name'].encode('ascii', 'ignore')) + 'Result'
+            intent_name = intent['name']
+            if type(intent_name) == bytes:
+                intent_name = intent_name.decode()
+            result_name = intent_name + 'Result'
             slots = intent['slots']
             if DEBUG:
                 for s in slots:
@@ -86,7 +114,7 @@ class LexModelsClient:
 
     def get_result_class_name(self, intent_name):
         intent = self.get_intent(intent_name)
-        return intent['name'].encode('ascii', 'ignore') + 'Result'
+        return intent['name'] + 'Result'
 
     def get_results(self, bot_name):
         return self.__result_classes[bot_name]
@@ -100,4 +128,12 @@ class LexModelsClient:
         return self.get_result_class(bot_name, result_name)
 
     def get_result_class(self, bot_name, result_name):
-        return self.__result_classes[bot_name][result_name]
+        try:
+            return self.__result_classes[bot_name][result_name]
+        except KeyError as ex:
+            print('ERROR: KeyError: {}'.format(ex), file=sys.stderr)
+            print("looking for {},{}".format(bot_name, result_name), file=sys.stderr)
+            print("__result_classes[{}]:".format(bot_name), file=sys.stderr)
+            for r in self.__result_classes[bot_name]:
+                print("\t{}".format(r), file=sys.stderr)
+            raise KeyError(ex)

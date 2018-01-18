@@ -23,12 +23,16 @@ DEBUG = False
 
 def to_snake_case(name):
     if DEBUG:
-        print('>>>>>>> to_snake_case({})'.format(name))
+        print('>>>>>>> to_snake_case({}) {}'.format(name, type(name)))
+    if type(name) == bytes:
+        name = name.decode()
     s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', name)
     return re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
 
 
 def to_camel_case(name):
+    if type(name) == bytes:
+        name = name.decode()
     components = name.split('_')
     return "".join(x.title() for x in components)
 

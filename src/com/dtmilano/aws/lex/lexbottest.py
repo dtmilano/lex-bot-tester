@@ -120,7 +120,12 @@ class LexBotTest(TestCase):
                                                      slot_to_elicit,
                                                      slots))
                             if isinstance(e, re._pattern_type):
-                                self.assertRegexpMatches(a, e)
+                                try:
+                                    # noinspection PyCompatibility
+                                    self.assertRegex(a, e)
+                                except AttributeError as ex:
+                                    # python 2.7.x
+                                    self.assertRegexpMatches(a, e)
                             else:
                                 self.assertEqual(e, a)
                         except KeyError as ex:

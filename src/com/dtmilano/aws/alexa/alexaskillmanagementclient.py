@@ -18,8 +18,6 @@
 """
 import json
 import pathlib
-import random
-import re
 import sys
 import uuid
 from datetime import datetime
@@ -29,7 +27,7 @@ from time import sleep
 
 import requests
 
-from com.dtmilano.util.conversion import number_to_words
+from com.dtmilano.util.color import Color
 
 
 class Request:
@@ -181,7 +179,8 @@ class AlexaSkillManagementClient:
         if not self.__skill_id:
             raise ValueError('cannot find skillId for {}'.format(skill_name))
         self.__locale = locale
-        cli_config = json.loads(open(str(pathlib.Path.home()) + '/.ask/cli_config').read())
+        with open(str(pathlib.Path.home()) + '/.ask/cli_config') as f:
+            cli_config = json.loads(f.read())
         expires_at = datetime.strptime(cli_config['profiles']['default']['token']['expires_at'],
                                        '%Y-%m-%dT%H:%M:%S.%fZ')
         if expires_at < datetime.utcnow():
@@ -318,6 +317,7 @@ class AlexaSkillManagementClient:
                                                                            simulationId=simulation_id)
         sleep(1)
         attempt = 7
+        r = None
         while attempt > 0:
             r = self.__request(request, None, method, debug)
             if r['status'] == Response.Status.SUCCESSFUL:
@@ -368,10 +368,11 @@ class AlexaSkillManagementClient:
                                  'reprompt': reprompt,
                                  'fulfilled': fulfilled, 'slots': slots})
 
-    def simulation(self, text, debug=False):
+    def simulation(self, text, verbose, debug=False):
         """
         Starts a simulation sending the specified text.
 
+        :param verbose:
         :param text: the text to send
         :param debug: enable debug
         :return: the {SimulationResult}
@@ -379,7 +380,8 @@ class AlexaSkillManagementClient:
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/simulations'.format(skillId=self.__skill_id)
         body = {'input': {'content': text}, 'device': {'locale': self.__locale}}
-        print('\x1b[35m>>> saying: {}\x1b[0m'.format(text))
+        if verbose:
+            print(Color.colorize('>> saying: {}'.format(text), Color.BRIGHT_BLUE))
         r = self.__request(request, body, method, debug)
         if r['status'] == Response.Status.IN_PROGRESS:
             simulation_id = r['id']
@@ -387,10 +389,11 @@ class AlexaSkillManagementClient:
         else:
             raise RuntimeError('ERROR: {}'.format(r))
 
-    def conversation_step(self, step, debug):
+    def conversation_step(self, step, verbose, debug=False):
         """
         Moves the conversation one step.
 
+        :param verbose:
         :param step: the step, a dictionary containing slot, prompt and text
         :param debug: show debug messages
         :return: the {SimulationResult}
@@ -403,13 +406,15 @@ class AlexaSkillManagementClient:
 
         while forgive and not simulation_result:
             try:
-                print('\n')
-                if prompt:
+                if verbose:
+                    print('\n')
+                if verbose and prompt:
                     print(prompt)
-                simulation_result = self.simulation(text, debug)
-                if simulation_result and slot:
-                    print('\x1b[36m{}\x1b[0m'.format(simulation_result.get_slot_value(slot)))
-                print()
+                simulation_result = self.simulation(text, verbose, debug)
+                if verbose and simulation_result and slot:
+                    print(Color.colorize('<<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE))
+                if verbose:
+                    print()
             except RuntimeError as ex:
                 if forgive:
                     forgive = False
@@ -463,73 +468,73 @@ class AlexaSkillManagementClient:
         return None
 
 
-def high_low_game(alexa_skill_management_client, debug=False):
-    # if not isinstance(conversation, list):
-    #     raise ValueError('conversation should be a list of strings')
-    conversation = ['start high low game', 'yes', 'twenty four', '$random',
-                    '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
-                    '$guess', '$guess', '$guess', '$guess']
-    simulation_result = None
-    lowest = 1
-    highest = 100
-    for text in conversation:
-        if text == '$random':
-            text = number_to_words(random.randint(1, 100))
-        elif text == '$guess':
-            if simulation_result:
-                print('searching "{}" for number and condition'.format(simulation_result.get_response()))
-                m = re.search('.*?(\d+) is correct.*', simulation_result.get_response())
-                if m:
-                    print('***** {} is correct !!! *****'.format(m.group(1)))
-                    break
-                m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_response())
-                if m:
-                    n = int(m.group(1))
-                    w = m.group(2)
-                    if w == 'high':
-                        highest = n
-                        randint = random.randint(lowest, highest)
-                        text = number_to_words(randint)
-                        print('{} is top high, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest,
-                                                                                    highest))
-                    else:
-                        lowest = n
-                        randint = random.randint(lowest + 1, highest)
-                        text = number_to_words(randint)
-                        print(
-                            '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
-                else:
-                    raise RuntimeError('simulation_result = {}'.format(simulation_result))
-            else:
-                text = number_to_words(random.randint(1, 100))
-        simulation_result = alexa_skill_management_client.simulation(text, debug)
-        print(re.sub('<.*?speak>', '', simulation_result.get_response()))
-        print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
-
-
-def reserve_a_car(alexa_skill_management_client, debug=False):
-    intent = 'BookCar'
-    interaction_model = alexa_skill_management_client.get_interaction_model()
-    prompts = interaction_model.get_prompts_by_intent(intent)
-    conversation = [
-        {'slot': None, 'prompt': None, 'text': 'ask book my trip to reserve a car'},
-        {'slot': 'CarType', 'prompt': prompts['CarType'], 'text': 'midsize'},
-        {'slot': 'PickUpCity', 'prompt': prompts['PickUpCity'], 'text': 'buenos aires'},
-        {'slot': 'PickUpDate', 'prompt': prompts['PickUpDate'], 'text': 'tomorrow'},
-        {'slot': 'ReturnDate', 'prompt': prompts['ReturnDate'], 'text': 'five days from now'},
-        {'slot': 'DriverAge', 'prompt': prompts['DriverAge'], 'text': 'twenty five'},
-        {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
-    ]
-
-    simulation_result = None
-    fulfilled = False
-    for c in conversation:
-        simulation_result = alexa_skill_management_client.conversation_step(c, debug)
-        fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
-        sleep(1)
-    if not fulfilled:
-        print('ERROR: some slots have no values:\n{}\n'.format(
-            simulation_result.get_slots() if simulation_result else 'no slots available'), file=sys.stderr)
+# def high_low_game(alexa_skill_management_client, debug=False):
+#     # if not isinstance(conversation, list):
+#     #     raise ValueError('conversation should be a list of strings')
+#     conversation = ['start high low game', 'yes', 'twenty four', '$random',
+#                     '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
+#                     '$guess', '$guess', '$guess', '$guess']
+#     simulation_result = None
+#     lowest = 1
+#     highest = 100
+#     for text in conversation:
+#         if text == '$random':
+#             text = number_to_words(random.randint(1, 100))
+#         elif text == '$guess':
+#             if simulation_result:
+#                 print('searching "{}" for number and condition'.format(simulation_result.get_response()))
+#                 m = re.search('.*?(\d+) is correct.*', simulation_result.get_response())
+#                 if m:
+#                     print('***** {} is correct !!! *****'.format(m.group(1)))
+#                     break
+#                 m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_response())
+#                 if m:
+#                     n = int(m.group(1))
+#                     w = m.group(2)
+#                     if w == 'high':
+#                         highest = n
+#                         randint = random.randint(lowest, highest)
+#                         text = number_to_words(randint)
+#                         print('{} is top high, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest,
+#                                                                                     highest))
+#                     else:
+#                         lowest = n
+#                         randint = random.randint(lowest + 1, highest)
+#                         text = number_to_words(randint)
+#                         print(
+#                             '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
+#                 else:
+#                     raise RuntimeError('simulation_result = {}'.format(simulation_result))
+#             else:
+#                 text = number_to_words(random.randint(1, 100))
+#         simulation_result = alexa_skill_management_client.simulation(text, debug)
+#         print(re.sub('<.*?speak>', '', simulation_result.get_response()))
+#         print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
+#
+#
+# def reserve_a_car(alexa_skill_management_client, debug=False):
+#     intent = 'BookCar'
+#     interaction_model = alexa_skill_management_client.get_interaction_model()
+#     prompts = interaction_model.get_prompts_by_intent(intent)
+#     conversation = [
+#         {'slot': None, 'prompt': None, 'text': 'ask book my trip to reserve a car'},
+#         {'slot': 'CarType', 'prompt': prompts['CarType'], 'text': 'midsize'},
+#         {'slot': 'PickUpCity', 'prompt': prompts['PickUpCity'], 'text': 'buenos aires'},
+#         {'slot': 'PickUpDate', 'prompt': prompts['PickUpDate'], 'text': 'tomorrow'},
+#         {'slot': 'ReturnDate', 'prompt': prompts['ReturnDate'], 'text': 'five days from now'},
+#         {'slot': 'DriverAge', 'prompt': prompts['DriverAge'], 'text': 'twenty five'},
+#         {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
+#     ]
+#
+#     simulation_result = None
+#     fulfilled = False
+#     for c in conversation:
+#         simulation_result = alexa_skill_management_client.conversation_step(c, debug)
+#         fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
+#         sleep(1)
+#     if not fulfilled:
+#         print('ERROR: some slots have no values:\n{}\n'.format(
+#             simulation_result.get_slots() if simulation_result else 'no slots available'), file=sys.stderr)
 
 
 def main():
@@ -542,8 +547,9 @@ def main():
         raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format('High Low Game'))
 
     # simulation_result = None
-    # print('\nskill_name inf')
-    # bmts.get_skill_info()
+    print('\nskill info')
+    bmts.get_skill_info()
+    hlg.get_skill_info()
     # print('\netag')
     # bmts.get_interaction_model_etag()
     # print('\nmodel')
@@ -552,10 +558,10 @@ def main():
     # bmts.invocation()
     # print('\nsimulation')
     # bmts.simulation(conversation[skill_name][0], debug=False)
-    print('\nconversation')
-    high_low_game(hlg, debug=False)
-    print('\nconversation')
-    reserve_a_car(bmts, debug=False)
+    # print('\nconversation')
+    # high_low_game(hlg, debug=False)
+    # print('\nconversation')
+    # reserve_a_car(bmts, debug=False)
     # bmts.simulation('start book my trip', debug=True)
     # # bmts.simulation('verdura', debug=True)
 

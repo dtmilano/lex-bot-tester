@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     Lex Bot Tester
-    Copyright (C) 2017  Diego Torres Milano
+    Copyright (C) 2017-2018  Diego Torres Milano
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,8 +39,8 @@ class AlexaSkillTest(TestCase):
         """
         Helper method for tests using text conversations.
 
-        :param intent_name:
-        :param use_tts:
+        :param intent_name: the intent name
+        :param use_tts: whether to use TTS
         :param skill_name: the bot name
         :param conversation: the conversation
         :param verbose: produce verbose output

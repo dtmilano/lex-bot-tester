@@ -28,6 +28,9 @@ DEBUG = False
 
 
 class AlexaSkillTest(TestCase):
+    """
+    Base class for Alexa Skill Tests.
+    """
     def setUp(self):
         super(AlexaSkillTest, self).setUp()
 

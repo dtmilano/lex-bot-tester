@@ -35,10 +35,11 @@ class AlexaSkillTest(TestCase):
         super(AlexaSkillTest, self).tearDown()
 
     def conversation_text(self, skill_name, intent_name, conversation, verbose=VERBOSE, use_tts=False):
-        # type: (str, str, str, list, bool, bool) -> None
+        # type: (AlexaSkillTest, str, str, list, bool, bool) -> None
         """
         Helper method for tests using text conversations.
 
+        :param intent_name:
         :param use_tts:
         :param skill_name: the bot name
         :param conversation: the conversation

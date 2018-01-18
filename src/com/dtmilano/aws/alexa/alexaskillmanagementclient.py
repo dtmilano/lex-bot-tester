@@ -126,6 +126,50 @@ class InteractionModel:
                 prompts[s.get_name()] = v
         return prompts
 
+    def print_interaction_model(self):
+        pprint(self.__interaction_model)
+        if self.__interaction_model:
+            print('dialog')
+            intents = self.__interaction_model['interactionModel']['dialog']['intents']
+            for i in intents:
+                print(i['name'])
+                for s in i['slots']:
+                    print('\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired']))
+                    for p in s['prompts'].keys():
+                        v = s['prompts'][p]
+                        for p2 in self.__interaction_model['interactionModel']['prompts']:
+                            if p2['id'] == v:
+                                for v2 in p2['variations']:
+                                    if v2['type'] == 'PlainText':
+                                        print('\t\t{}'.format(v2['value']))
+            print()
+            print('languageModel')
+            intents = self.__interaction_model['interactionModel']['languageModel']['intents']
+            for i in intents:
+                print(i['name'])
+        else:
+            print('ERROR', file=sys.stderr)
+
+
+class SimulationResult(object):
+    def __init__(self, simulation_result):
+        self.__simulation_result = simulation_result
+
+    def is_fulfilled(self):
+        return self.__simulation_result['fulfilled']
+
+    def get_slot_value(self, slot):
+        return self.__simulation_result['slots'][slot]['value']
+
+    def get_slots(self):
+        return self.__simulation_result['slots']
+
+    def get_response(self):
+        return self.__simulation_result['response']
+
+    def get_reprompt(self):
+        return self.__simulation_result['reprompt']
+
 
 class AlexaSkillManagementClient:
     ROOT = 'https://api.amazonalexa.com/'
@@ -160,30 +204,6 @@ class AlexaSkillManagementClient:
                                                                                   locale=self.__locale)
         r = self.__request(request, method=method, debug=False)
         return r
-
-    def print_interation_model(self, interaction_model):
-        pprint(interaction_model)
-        if interaction_model:
-            print('dialog')
-            intents = interaction_model['interactionModel']['dialog']['intents']
-            for i in intents:
-                print(i['name'])
-                for s in i['slots']:
-                    print('\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired']))
-                    for p in s['prompts'].keys():
-                        v = s['prompts'][p]
-                        for p2 in interaction_model['interactionModel']['prompts']:
-                            if p2['id'] == v:
-                                for v2 in p2['variations']:
-                                    if v2['type'] == 'PlainText':
-                                        print('\t\t{}'.format(v2['value']))
-            print()
-            print('languageModel')
-            intents = interaction_model['interactionModel']['languageModel']['intents']
-            for i in intents:
-                print(i['name'])
-        else:
-            print('ERROR', file=sys.stderr)
 
     def get_interaction_model_etag(self):
         # HEAD /v0/skills/{skillId}/interactionModel/locales/{locale}
@@ -291,7 +311,7 @@ class AlexaSkillManagementClient:
 
         :param simulation_id: the simulation id
         :param debug: enable debug
-        :return: the response, reprompt object
+        :return: the {SimulationResult}
         """
         method = Request.Method.GET
         request = '/v0/skills/{skillId}/simulations/{simulationId}'.format(skillId=self.__skill_id,
@@ -342,10 +362,11 @@ class AlexaSkillManagementClient:
                     break
         except KeyError:
             fulfilled = None
+            slots = None
 
-        return {'directives': directives, 'shouldEndSession': should_end_session, 'response': response,
-                'reprompt': reprompt,
-                'fulfilled': fulfilled, 'slots': slots}
+        return SimulationResult({'directives': directives, 'shouldEndSession': should_end_session, 'response': response,
+                                 'reprompt': reprompt,
+                                 'fulfilled': fulfilled, 'slots': slots})
 
     def simulation(self, text, debug=False):
         """
@@ -353,7 +374,7 @@ class AlexaSkillManagementClient:
 
         :param text: the text to send
         :param debug: enable debug
-        :return: the simulation
+        :return: the {SimulationResult}
         """
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/simulations'.format(skillId=self.__skill_id)
@@ -364,36 +385,37 @@ class AlexaSkillManagementClient:
             simulation_id = r['id']
             return self.__get_simulation(simulation_id, debug)
         else:
-            raise RuntimeError('{}'.format(r))
+            raise RuntimeError('ERROR: {}'.format(r))
 
     def conversation_step(self, step, debug):
         """
         Moves the conversation one step.
 
-        :param step:
-        :param debug:
-        :return:
+        :param step: the step, a dictionary containing slot, prompt and text
+        :param debug: show debug messages
+        :return: the {SimulationResult}
         """
         forgive = True
         slot = step['slot']
         prompt = step['prompt']
         text = step['text']
-        rere = None
+        simulation_result = None
 
-        while forgive:
+        while forgive and not simulation_result:
             try:
+                print('\n')
                 if prompt:
                     print(prompt)
-                rere = self.simulation(text, debug)
-                if slot:
-                    print(rere['slots'][slot]['value'])
+                simulation_result = self.simulation(text, debug)
+                if simulation_result and slot:
+                    print('\x1b[36m{}\x1b[0m'.format(simulation_result.get_slot_value(slot)))
                 print()
             except RuntimeError as ex:
                 if forgive:
                     forgive = False
                 else:
                     raise ex
-        return rere
+        return simulation_result
 
     def __request(self, request, body=None, method=Request.Method.GET, debug=False):
         headers = {'Authorization': self.__access_token,
@@ -447,20 +469,20 @@ def high_low_game(alexa_skill_management_client, debug=False):
     conversation = ['start high low game', 'yes', 'twenty four', '$random',
                     '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
                     '$guess', '$guess', '$guess', '$guess']
-    rere = None
+    simulation_result = None
     lowest = 1
     highest = 100
     for text in conversation:
         if text == '$random':
             text = number_to_words(random.randint(1, 100))
         elif text == '$guess':
-            if rere:
-                print('searching "{}" for number and condition'.format(rere['response']))
-                m = re.search('.*?(\d+) is correct.*', rere['response'])
+            if simulation_result:
+                print('searching "{}" for number and condition'.format(simulation_result.get_response()))
+                m = re.search('.*?(\d+) is correct.*', simulation_result.get_response())
                 if m:
                     print('***** {} is correct !!! *****'.format(m.group(1)))
                     break
-                m = re.search('.*?(\d+) is too (\w+).*', rere['response'])
+                m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_response())
                 if m:
                     n = int(m.group(1))
                     w = m.group(2)
@@ -477,12 +499,12 @@ def high_low_game(alexa_skill_management_client, debug=False):
                         print(
                             '{} is top low, will try {} ({}) in [{}..{}]'.format(n, randint, text, lowest, highest))
                 else:
-                    raise RuntimeError('rere = {}'.format(rere))
+                    raise RuntimeError('simulation_result = {}'.format(simulation_result))
             else:
                 text = number_to_words(random.randint(1, 100))
-        rere = alexa_skill_management_client.simulation(text, debug)
-        print(re.sub('<.*?speak>', '', rere['response']))
-        print(re.sub('<.*?speak>', '', rere['reprompt']))
+        simulation_result = alexa_skill_management_client.simulation(text, debug)
+        print(re.sub('<.*?speak>', '', simulation_result.get_response()))
+        print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
 
 
 def reserve_a_car(alexa_skill_management_client, debug=False):
@@ -499,40 +521,43 @@ def reserve_a_car(alexa_skill_management_client, debug=False):
         {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
     ]
 
-    rere = None
+    simulation_result = None
+    fulfilled = False
     for c in conversation:
-        rere = alexa_skill_management_client.conversation_step(c, debug)
+        simulation_result = alexa_skill_management_client.conversation_step(c, debug)
+        fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
         sleep(1)
-    if not rere['fulfilled']:
-        print('ERROR: some slots have no values:\n{}\n'.format(rere['slots']), file=sys.stderr)
+    if not fulfilled:
+        print('ERROR: some slots have no values:\n{}\n'.format(
+            simulation_result.get_slots() if simulation_result else 'no slots available'), file=sys.stderr)
 
 
 def main():
-    # skill_name = 'Aristo'
-    skill_name = 'BookMyTripSkill'
-    # skill_name = 'High Low Game'
-    conversation = {'BookMyTripSkill': 'ask book my trip to reserve a car',
-                    'High Low Game': ['start high low game', 'yes', 'twenty four', '$random',
-                                      '$guess', '$guess', '$guess', '$guess', '$guess', '$guess', '$guess',
-                                      '$guess', '$guess', '$guess', '$guess']}
-    asmc = AlexaSkillManagementClient(skill_name)
-    if not asmc:
-        raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format(skill_name))
+    bmts = AlexaSkillManagementClient('BookMyTripSkill')
+    if not bmts:
+        raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format('BookMyTripSkill'))
+
+    hlg = AlexaSkillManagementClient('High Low Game')
+    if not hlg:
+        raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format('High Low Game'))
+
+    # simulation_result = None
     # print('\nskill_name inf')
-    # asmc.get_skill_info()
+    # bmts.get_skill_info()
     # print('\netag')
-    # asmc.get_interaction_model_etag()
+    # bmts.get_interaction_model_etag()
     # print('\nmodel')
-    # asmc.print_interation_model(asmc.obtain_interaction_model())
+    # bmts.print_interation_model(bmts.obtain_interaction_model())
     # print('\ninvocation')
-    # asmc.invocation()
+    # bmts.invocation()
     # print('\nsimulation')
-    # asmc.simulation(conversation[skill_name][0], debug=False)
+    # bmts.simulation(conversation[skill_name][0], debug=False)
     print('\nconversation')
-    # high_low_game(asmc)
-    reserve_a_car(asmc, debug=False)
-    # asmc.simulation('start book my trip', debug=True)
-    # # asmc.simulation('verdura', debug=True)
+    high_low_game(hlg, debug=False)
+    print('\nconversation')
+    reserve_a_car(bmts, debug=False)
+    # bmts.simulation('start book my trip', debug=True)
+    # # bmts.simulation('verdura', debug=True)
 
 
 if __name__ == '__main__':

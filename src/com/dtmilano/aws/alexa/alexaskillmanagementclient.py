@@ -90,18 +90,17 @@ class InteractionModel:
     def __init__(self, asmc):
         self.__interaction_model = asmc.obtain_interaction_model()
 
-    def get_slots_for_intent(self, intent: str) -> [Slot]:
+    def get_slots_by_intent(self, intent: str) -> [Slot]:
         for i in self.__interaction_model['interactionModel']['dialog']['intents']:
             if i['name'] == intent:
                 slots = []
                 for s in i['slots']:
                     slots.append(Slot(s))
-                # return i['slots']
                 return slots
         return None
 
-    def get_slot_for_intent(self, slot, intent):
-        for s in self.get_slots_for_intent(intent):
+    def get_slot_by_intent(self, slot, intent):
+        for s in self.get_slots_by_intent(intent):
             if s.get_name() == slot:
                 return s
         return None
@@ -123,7 +122,7 @@ class InteractionModel:
         return None
 
     def get_prompts_by_intent(self, intent):
-        slots = self.get_slots_for_intent(intent)
+        slots = self.get_slots_by_intent(intent)
         prompts = {}
         for s in slots:
             if s.is_elicitation_required():
@@ -132,7 +131,7 @@ class InteractionModel:
                 prompts[s.get_name()] = v
         return prompts
 
-    def print_interaction_model(self):
+    def print(self):
         pprint(self.__interaction_model)
         if self.__interaction_model:
             print('dialog')
@@ -195,7 +194,7 @@ class AlexaSkillManagementClient:
         expires_at = datetime.strptime(cli_config['profiles']['default']['token']['expires_at'],
                                        '%Y-%m-%dT%H:%M:%S.%fZ')
         if expires_at < datetime.utcnow():
-            raise RuntimeError("ASK access token is expired.\nYou can run 'ask cli list-skills' to refresh it.")
+            raise RuntimeError("ASK access token is expired.\nYou can run 'ask api list-skills' to refresh it.")
         else:
             self.__access_token = cli_config['profiles']['default']['token']['access_token']
 
@@ -223,78 +222,20 @@ class AlexaSkillManagementClient:
         r = self.__request(request, method=method, debug=False)
         print(r)
 
-    def invocation(self, debug=False):
+    def invocation(self, body_str, slot_values, verbose=False, debug=False):
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/invocations'.format(skillId=self.__skill_id)
-        body_str = """{{
-            "endpointRegion": "NA",
-            "skillRequest": {{
-                "body": {{
-                    "context": {{
-                        "AudioPlayer": {{
-                            "playerActivity": "IDLE"
-                        }},
-                        "System": {{
-                            "application": {{
-                                "applicationId": "{skillId}"
-                            }},
-                            "device": {{
-                                "supportedInterfaces": {{}}
-                            }},
-                            "user": {{
-                                "userId": "{userId}"
-                            }}
-                        }}
-                    }},
-                    "request": {{
-                        "intent": {{
-                            "name": "BookCar",
-                            "slots": {{
-                                "CarType": {{
-                                    "name": "CarType"
-                                }},
-                                "DriverAge": {{
-                                    "name": "DriverAge"
-                                }},
-                                "PickUpCity": {{
-                                    "name": "PickUpCity"
-                                }},
-                                "PickUpDate": {{
-                                    "name": "PickUpDate"
-                                }},
-                                "ReturnDate": {{
-                                    "name": "ReturnDate"
-                                }}
-                            }}
-                        }},
-                        "locale": "en-US",
-                        "requestId": "{requestId}",
-                        "timestamp": "{timestamp}",
-                        "type": "IntentRequest"
-                    }},
-                    "session": {{
-                        "application": {{
-                            "applicationId": "{skillId}"
-                        }},
-                        "attributes": {{}},
-                        "new": true,
-                        "sessionId": "{sessionId}",
-                        "user": {{
-                            "userId": "{userId}"
-                        }}
-                    }},
-                    "version": "1.0"
-                }}
-            }}
-        }}""".format(skillId=self.__skill_id, sessionId='SessionId.{}'.format(uuid.uuid4()),
-                     requestId='EdwRequestId.{}'.format(uuid.uuid4()), userId="TestUser",
-                     timestamp=datetime.now().isoformat())
+        body_str = body_str.format(skillId=self.__skill_id, sessionId='SessionId.{}'.format(uuid.uuid4()),
+                                   requestId='EdwRequestId.{}'.format(uuid.uuid4()), userId="TestUser",
+                                   timestamp=datetime.now().isoformat())
         # FIXME: original timestamp: "2018-01-08T06:27:33Z" (we have a slightly different format now)
-        request_body = json.loads(body_str)
+        try:
+            request_body = json.loads(body_str)
+        except JSONDecodeError as ex:
+            print('ERROR: Decoding\n{}\n'.format(body_str))
+            raise ex
         r = self.__request(request, request_body, method, debug)
-        slot_values = {'CarType': 'luxury', 'PickUpCity': 'san francisco', 'PickUpDate': 'tomorrow',
-                       'ReturnDate': 'next week', 'DriverAge': 25}
-        if r['status'] == 'SUCCESSFUL':
+        if r and r['status'] == 'SUCCESSFUL':
             for s in slot_values:
                 request_body['skillRequest']['body']['request']['timestamp'] = datetime.now().isoformat()
                 request_body['skillRequest']['body']['request']['intent']['slots'][s]['value'] = slot_values[s]
@@ -302,23 +243,29 @@ class AlexaSkillManagementClient:
                 r = self.__request(request, request_body, method, debug)
                 if r['status'] == Response.Status.SUCCESSFUL:
                     try:
-                        print(r['result']['skillExecutionInfo']['invocationResponse'])
+                        if verbose:
+                            print(r['result']['skillExecutionInfo']['invocationResponse'])
                         if r['result']['skillExecutionInfo']['invocationResponse']['body']['response'][
                             'shouldEndSession']:
-                            break
+                            return True
                     except KeyError:
                         try:
-                            print('r = {}'.format(r))
+                            if debug:
+                                print('r = {}'.format(r))
                             print('ERROR: {}'.format(r['result']['error']['message']), file=sys.stderr)
                         except KeyError:
                             print('no invocation response: r = {}'.format(r), file=sys.stderr)
                 else:
                     print('ERROR: {}'.format(r), file=sys.stderr)
+        else:
+            print('ERROR: {}'.format('No response'), file=sys.stderr)
+        return False
 
     def __get_simulation(self, simulation_id, debug=False):
         """
         Gets the simulation for the specified simulation_id.
 
+        :rtype: SimulationResult
         :param simulation_id: the simulation id
         :param debug: enable debug
         :return: the {SimulationResult}
@@ -387,6 +334,7 @@ class AlexaSkillManagementClient:
         """
         Starts a simulation sending the specified text.
 
+        :rtype: SimulationResult
         :param verbose: verbose output
         :param text: the text to send
         :param debug: enable debug
@@ -429,7 +377,7 @@ class AlexaSkillManagementClient:
                     print(prompt)
                 simulation_result = self.simulation(text, verbose, debug)
                 if verbose and simulation_result and slot:
-                    print(Color.colorize('<<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
+                    print(Color.colorize('<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
                                          Color.BRIGHT_BLACK))
                 if verbose:
                     print()
@@ -505,7 +453,7 @@ class AlexaSkillManagementClient:
                 c['prompt'] = prompts[c['slot']]
             else:
                 c['prompt'] = None
-        self.__interaction_model_slots = interaction_model.get_slots_for_intent(intent_name)
+        self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
         self.__conversation_status = 'STARTED'
 
     def conversation_end(self) -> None:
@@ -529,8 +477,71 @@ def main():
     # bmts.get_interaction_model_etag()
     # print('\nmodel')
     # bmts.print_interation_model(bmts.obtain_interaction_model())
-    # print('\ninvocation')
-    # bmts.invocation()
+    print('\ninvocation')
+    body_str = """{{
+        "endpointRegion": "NA",
+        "skillRequest": {{
+            "body": {{
+                "context": {{
+                    "AudioPlayer": {{
+                        "playerActivity": "IDLE"
+                    }},
+                    "System": {{
+                        "application": {{
+                            "applicationId": "{skillId}"
+                        }},
+                        "device": {{
+                            "supportedInterfaces": {{}}
+                        }},
+                        "user": {{
+                            "userId": "{userId}"
+                        }}
+                    }}
+                }},
+                "request": {{
+                    "intent": {{
+                        "name": "BookCar",
+                        "slots": {{
+                            "CarType": {{
+                                "name": "CarType"
+                            }},
+                            "DriverAge": {{
+                                "name": "DriverAge"
+                            }},
+                            "PickUpCity": {{
+                                "name": "PickUpCity"
+                            }},
+                            "PickUpDate": {{
+                                "name": "PickUpDate"
+                            }},
+                            "ReturnDate": {{
+                                "name": "ReturnDate"
+                            }}
+                        }}
+                    }},
+                    "locale": "en-US",
+                    "requestId": "{requestId}",
+                    "timestamp": "{timestamp}",
+                    "type": "IntentRequest"
+                }},
+                "session": {{
+                    "application": {{
+                        "applicationId": "{skillId}"
+                    }},
+                    "attributes": {{}},
+                    "new": true,
+                    "sessionId": "{sessionId}",
+                    "user": {{
+                        "userId": "{userId}"
+                    }}
+                }},
+                "version": "1.0"
+            }}
+        }}
+    }}"""
+    slot_values = {'CarType': 'luxury', 'PickUpCity': 'san francisco', 'PickUpDate': 'tomorrow',
+                   'ReturnDate': 'next week', 'DriverAge': 25}
+    print('returns {}'.format(bmts.invocation(body_str, slot_values)))
     # print('\nsimulation')
     # bmts.simulation(conversation[skill_name][0], debug=False)
     # print('\nconversation')

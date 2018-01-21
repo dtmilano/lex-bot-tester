@@ -94,6 +94,16 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
         self.assertIs(found, True)
 
+    def test_plan_my_trip(self):
+        skill_name = 'PlanMyTripSkill'
+        intent = 'PlanMyTrip'
+        conversation = [
+            {'slot': None, 'text': 'tell plan my trip I\'m going on a trip the day after tomorrow'},
+            {'slot': 'toCity', 'text': 'new york'},
+            {'slot': 'fromCity', 'text': 'seattle'}
+        ]
+        self.conversation_text(skill_name, intent, conversation, verbose=True)
+
 
 if __name__ == '__main__':
     verbose = '-v' in sys.argv or '--verbose' in sys.argv

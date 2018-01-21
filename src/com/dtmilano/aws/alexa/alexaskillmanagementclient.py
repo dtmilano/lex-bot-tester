@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     Lex Bot Tester
-    Copyright (C) 2017  Diego Torres Milano
+    Copyright (C) 2017-2018  Diego Torres Milano
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -90,7 +90,7 @@ class InteractionModel:
     def __init__(self, asmc):
         self.__interaction_model = asmc.obtain_interaction_model()
 
-    def get_slots_for_intent(self, intent):
+    def get_slots_for_intent(self, intent: str) -> [Slot]:
         for i in self.__interaction_model['interactionModel']['dialog']['intents']:
             if i['name'] == intent:
                 slots = []
@@ -98,6 +98,12 @@ class InteractionModel:
                     slots.append(Slot(s))
                 # return i['slots']
                 return slots
+        return None
+
+    def get_slot_for_intent(self, slot, intent):
+        for s in self.get_slots_for_intent(intent):
+            if s.get_name() == slot:
+                return s
         return None
 
     def get_prompts(self):
@@ -135,13 +141,14 @@ class InteractionModel:
                 print(i['name'])
                 for s in i['slots']:
                     print('\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired']))
-                    for p in s['prompts'].keys():
-                        v = s['prompts'][p]
-                        for p2 in self.__interaction_model['interactionModel']['prompts']:
-                            if p2['id'] == v:
-                                for v2 in p2['variations']:
-                                    if v2['type'] == 'PlainText':
-                                        print('\t\t{}'.format(v2['value']))
+                    if 'prompts' in s:
+                        for p in s['prompts'].keys():
+                            v = s['prompts'][p]
+                            for p2 in self.__interaction_model['interactionModel']['prompts']:
+                                if p2['id'] == v:
+                                    for v2 in p2['variations']:
+                                        if v2['type'] == 'PlainText':
+                                            print('\t\t{}'.format(v2['value']))
             print()
             print('languageModel')
             intents = self.__interaction_model['interactionModel']['languageModel']['intents']
@@ -175,6 +182,8 @@ class AlexaSkillManagementClient:
     ROOT = 'https://api.amazonalexa.com/'
 
     def __init__(self, skill_name, locale='en-US'):
+        self.__interaction_model_slots = None
+        self.__conversation_status = None
         if not skill_name:
             raise ValueError('skill_name must be provided')
         self.__skill_id = AlexaSkillManagementClient.get_skill_id(skill_name, locale)
@@ -190,7 +199,7 @@ class AlexaSkillManagementClient:
         else:
             self.__access_token = cli_config['profiles']['default']['token']['access_token']
 
-    def get_interaction_model(self):
+    def get_interaction_model(self) -> InteractionModel:
         return InteractionModel(self)
 
     def get_skill_info(self):
@@ -359,7 +368,11 @@ class AlexaSkillManagementClient:
             fulfilled = True
             slots = r['result']['skillExecutionInfo']['invocationRequest']['body']['request']['intent']['slots']
             for s in slots:
-                if not ('value' in slots[s] and slots[s]['value']):
+                elicitation_required = None
+                for _s in self.__interaction_model_slots:
+                    if _s.get_name() == s:
+                        elicitation_required = _s.is_elicitation_required()
+                if elicitation_required and ('value' not in slots[s] or not slots[s]['value']):
                     fulfilled = False
                     break
         except KeyError:
@@ -370,11 +383,11 @@ class AlexaSkillManagementClient:
                                  'reprompt': reprompt,
                                  'fulfilled': fulfilled, 'slots': slots})
 
-    def simulation(self, text, verbose, debug=False):
+    def simulation(self, text: str, verbose: bool, debug: bool = False) -> SimulationResult:
         """
         Starts a simulation sending the specified text.
 
-        :param verbose:
+        :param verbose: verbose output
         :param text: the text to send
         :param debug: enable debug
         :return: the {SimulationResult}
@@ -385,13 +398,13 @@ class AlexaSkillManagementClient:
         if verbose:
             print(Color.colorize('>> saying: {}'.format(text), Color.BRIGHT_BLUE))
         r = self.__request(request, body, method, debug)
-        if r['status'] == Response.Status.IN_PROGRESS:
+        if r and r['status'] == Response.Status.IN_PROGRESS:
             simulation_id = r['id']
             return self.__get_simulation(simulation_id, debug)
         else:
             raise RuntimeError('ERROR: {}'.format(r))
 
-    def conversation_step(self, step, verbose, debug=False):
+    def conversation_step(self, step: {}, verbose: bool, debug: bool = False) -> SimulationResult:
         """
         Moves the conversation one step.
 
@@ -400,6 +413,8 @@ class AlexaSkillManagementClient:
         :param debug: show debug messages
         :return: the {SimulationResult}
         """
+        if self.__conversation_status != 'STARTED':
+            raise RuntimeError('Conversation has not been started')
         forgive = True
         slot = step['slot']
         prompt = step['prompt']
@@ -462,14 +477,39 @@ class AlexaSkillManagementClient:
 
     @staticmethod
     def get_skill_id(skill_name, locale='en-US', debug=False):
-        with open(str(pathlib.Path.home()) + '/.alexa_skills') as f:
-            alexa_skills = json.loads(f.read())['skills']
+        try:
+            with open(str(pathlib.Path.home()) + '/.alexa_skills') as f:
+                alexa_skills = json.loads(f.read())['skills']
+        except IOError:
+            print(
+                'ERROR: Cannot open ~/.alexa_skills.\n' +
+                'You can generate it with the command: \'ask api list-skills > ~/.alexa_skills\'',
+                file=sys.stderr)
+            sys.exit(1)
         for s in alexa_skills:
             if debug:
                 print('DEBUG: s={}'.format(s))
             if s['nameByLocale'][locale] == skill_name:
                 return s['skillId']
         return None
+
+    def conversation_start(self, intent_name: str, conversation: [], verbose: bool) -> None:
+        if verbose:
+            print('\n')
+            print("Start conversation")
+            print("------------------")
+        interaction_model = self.get_interaction_model()
+        prompts = interaction_model.get_prompts_by_intent(intent_name)
+        for c in conversation:
+            if c['slot']:
+                c['prompt'] = prompts[c['slot']]
+            else:
+                c['prompt'] = None
+        self.__interaction_model_slots = interaction_model.get_slots_for_intent(intent_name)
+        self.__conversation_status = 'STARTED'
+
+    def conversation_end(self) -> None:
+        self.__conversation_status = None
 
 
 def main():

@@ -60,23 +60,14 @@ class AlexaSkillTest(TestCase):
 
         """
         self.asmc = AlexaSkillManagementClient(skill_name)
-        prompts = self.asmc.get_interaction_model().get_prompts_by_intent(intent_name)
-        for c in conversation:
-            if c['slot']:
-                c['prompt'] = prompts[c['slot']]
-            else:
-                c['prompt'] = None
-
+        self.asmc.conversation_start(intent_name, conversation, verbose)
         simulation_result = None
         fulfilled = False
-        if verbose:
-            print('\n')
-            print("Start conversation")
-            print("------------------")
         for c in conversation:
             simulation_result = self.asmc.conversation_step(c, verbose)
             fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
             sleep(1)
+        self.asmc.conversation_end()
         self.assertTrue(fulfilled,
                         'Some slots have no values:\n{}\n'.format(
                             simulation_result.get_slots() if simulation_result else 'no slots available')

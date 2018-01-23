@@ -316,12 +316,13 @@ class AlexaSkillManagementClient:
             slots = r['result']['skillExecutionInfo']['invocationRequest']['body']['request']['intent']['slots']
             for s in slots:
                 elicitation_required = None
-                for _s in self.__interaction_model_slots:
-                    if _s.get_name() == s:
-                        elicitation_required = _s.is_elicitation_required()
-                if elicitation_required and ('value' not in slots[s] or not slots[s]['value']):
-                    fulfilled = False
-                    break
+                if self.__interaction_model_slots:
+                    for _s in self.__interaction_model_slots:
+                        if _s.get_name() == s:
+                            elicitation_required = _s.is_elicitation_required()
+                    if elicitation_required and ('value' not in slots[s] or not slots[s]['value']):
+                        fulfilled = False
+                        break
         except KeyError:
             fulfilled = None
             slots = None

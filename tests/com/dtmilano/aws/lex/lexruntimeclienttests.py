@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
     Lex Bot Tester
-    Copyright (C) 2017  Diego Torres Milano
+    Copyright (C) 2017-2018  Diego Torres Milano
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

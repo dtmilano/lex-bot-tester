@@ -20,7 +20,7 @@
 import boto3
 from six import string_types
 
-from com.dtmilano.aws.lex.pollyclient import PollyClient
+from com.dtmilano.aws.polly.pollyclient import PollyClient
 
 
 class DialogState:

@@ -15,7 +15,7 @@ except IOError:
 
 setup(name='lex-bot-tester',
       version='0.9.8',
-      description='''lex-bot-tester is a library that simplifies the creation of Amazon AWS Lex Bot tests.''',
+      description='''lex-bot-tester is a library that simplifies the creation of Amazon Alexa Skills and AWS Lex Bot tests.''',
       long_description=README,
       license='GPL-3.0',
       keywords='amazon aws lex bot tester conversation test automation',

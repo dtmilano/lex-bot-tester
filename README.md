@@ -13,7 +13,47 @@ Run
     pip install lex-bot-tester
     
 
-# Example
+# Examples
+
+## Alexa Skill test example
+This example uses Alexa Skill Blueprint: BookMyTrip.
+
+Using **lex-bot-tester** conversational tests like the following one can be created with minimal effort.
+
+```python
+class AlexaSkillManagementClientTests(AlexaSkillTest):
+
+    def test_book_my_trip_reserve_a_car(self):
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        conversation = [
+            {'slot': None, 'text': 'ask book my trip to reserve a car'},
+            {'slot': 'CarType', 'text': 'midsize'},
+            {'slot': 'PickUpCity', 'text': 'buenos aires'},
+            {'slot': 'PickUpDate', 'text': 'tomorrow'},
+            {'slot': 'ReturnDate', 'text': 'five days from now'},
+            {'slot': 'DriverAge', 'text': 'twenty five'},
+            {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
+        ]
+        self.conversation_text(skill_name, intent, conversation, verbose=True)
+```
+
+you can see full source code at [alexaskillmanagementclienttests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/alexa/alexaskillmanagementclienttests.py).
+
+### Running the tests
+You can run the tests from your favorite IDE or from the command line.
+
+If you are interested in seeing the details of the conversation you can add the `--verbose` option to the test runner.
+
+```
+$ ./alexaskillmamagementclienttests.py --verbose
+```
+
+and you will see an interaction similar to this one
+
+![test run](https://cdn-images-1.medium.com/max/1200/1*QO_6uZSVzY_BRGKIWZid4g.png)
+
+## AWS Lex Bot test example
 You may be familiar with this kind of tests in the *AWS Lex Console* (this example uses the well know *OrderFlowers* bot).
 
 ![test-bot](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/test-bot.png)
@@ -95,9 +135,9 @@ This result class reference, which extends `ResultBase` class is assigned to the
 
 `pickup_date` is a particular case, as it is selected as `next Sunday` so instead of looking for a particular value we are checking if it matches a regular expression defining dates.
 
-Finaly, once the `conversation` list is completed, a call to the helper method `conversations_text` providing this list as an argument completes the test.
+Finally, once the `conversation` list is completed, a call to the helper method `conversations_text` providing this list as an argument completes the test.
 
-However, if you are more into a data-driven approach, you can also declare the conversation as a data scructure as shown in the following example.
+However, if you are more into a data-driven approach, you can also declare the conversation as a data structure as shown in the following example.
 
 ```python
     def test_conversations_text_book_car(self):
@@ -123,7 +163,7 @@ However, if you are more into a data-driven approach, you can also declare the c
 
 Both approaches are identical in functionality, so you can choose the one that suits your taste.
 
-# Result classes
+## Result classes
 As mentioned before, `LexModelsClient.get_result_class_for_intent(intent)` returns the class that represents the response result once the Bot is invoked using the corresponding utterance.
 
 The signature of the constructor matches this pattern
@@ -135,7 +175,7 @@ The signature of the constructor matches this pattern
 
 To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-naming-conventions), keyword args representing slots are named using *snake case* when usually slots are named using *camel case*. Then, for example, the slot `FlowerType` will be represented by its corresponding keyword arg `flower_type`.
 
-# Conversations
+### Conversations
 **Conversation** is a list of **ConversationItems**. These **ConversationItems** represent the *send* -> *response* interaction. 
 
     class ConversationItem(object):
@@ -145,7 +185,7 @@ To comply with [PEP 8](https://www.python.org/dev/peps/pep-0008/#prescriptive-na
 
 Perhaps, taking a look at [lexbottestertests.py](https://github.com/dtmilano/lex-bot-tester/blob/master/tests/com/dtmilano/aws/lex/lexbottesttests.py) clarifies the idea. That test, uses the same structure and the classes created by inspecting the models for two different Bots: OrderFlowers and BookTrip.
 
-# Running the tests
+### Running the tests
 You can run the tests from your favorite IDE or from the command line.
 
 If you are interested in seeing the details of the conversation you can add the `--verbose` option to the test runner.
@@ -159,5 +199,6 @@ and you will see an interaction similar to the one presented before.
 ![term-output](https://raw.githubusercontent.com/dtmilano/lex-bot-tester/master/images/term-output.png)
 
 # Resources
+* [Testing Alexa Skills - The grail quest](https://medium.com/@dtmilano/testing-alexa-skills-the-grail-quest-3beba82450bb)
 * [Creating conversational AWS Lex Bot tests](https://medium.com/@dtmilano/creating-conversational-aws-lex-bot-tests-da84a83fe688)
 * [Improving conversational AWS Lex Bot tests](https://medium.com/@dtmilano/improving-conversational-aws-lex-bot-tests-6d041437a05f)

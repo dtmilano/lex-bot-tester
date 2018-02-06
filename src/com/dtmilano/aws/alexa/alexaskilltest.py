@@ -21,7 +21,7 @@ from __future__ import print_function
 from time import sleep
 from unittest import TestCase
 
-from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
+from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient, SimulationResult
 
 VERBOSE = False
 DEBUG = False
@@ -38,7 +38,7 @@ class AlexaSkillTest(TestCase):
         super(AlexaSkillTest, self).tearDown()
 
     def conversation_text(self, skill_name, intent_name, conversation, verbose=VERBOSE, use_tts=False):
-        # type: (AlexaSkillTest, str, str, list, bool, bool) -> None
+        # type: (AlexaSkillTest, str, str, list, bool, bool) -> SimulationResult
         """
         Helper method for tests using text conversations.
 
@@ -72,3 +72,4 @@ class AlexaSkillTest(TestCase):
                         'Some slots have no values:\n{}\n'.format(
                             simulation_result.get_slots() if simulation_result else 'no slots available')
                         )
+        return simulation_result

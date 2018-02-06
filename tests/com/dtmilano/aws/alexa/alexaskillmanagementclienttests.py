@@ -30,6 +30,7 @@ from com.dtmilano.util.color import Color
 from com.dtmilano.util.conversion import number_to_words
 
 DEBUG = False
+verbose = False
 
 
 class AlexaSkillManagementClientTests(AlexaSkillTest):
@@ -107,10 +108,15 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
     def test_crypto_get_price(self):
         skill_name = 'CryptoSkill'
         intent = 'GetPrice'
+        coin = 'Bitcoin'
         conversation = [
-            {'slot': None, 'text': 'ask Crypto what is the Bitcoin price?'},
+            {'slot': None, 'text': 'ask Crypto what is the {} price?'.format(coin)},
         ]
-        self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+        simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+        self.assertRegex(
+            simulation_result.get_output_speech(),
+            re.compile('Current price of {} is \d+(\.?\d+)* euros\.'.format(coin), re.IGNORECASE)
+        )
 
     def test_decision_tree_recommend_a_job(self):
         skill_name = 'DecisionTreeSkill'

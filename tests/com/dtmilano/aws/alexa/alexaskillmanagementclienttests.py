@@ -63,13 +63,13 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             elif text == '$guess':
                 if simulation_result:
                     if DEBUG:
-                        print('searching "{}" for number and condition'.format(simulation_result.get_response()))
-                    m = re.search('.*?(\d+) is correct.*', simulation_result.get_response())
+                        print('searching "{}" for number and condition'.format(simulation_result.get_output_speech()))
+                    m = re.search('.*?(\d+) is correct.*', simulation_result.get_output_speech())
                     if m:
                         print(Color.colorize('* {} is correct !!! *'.format(m.group(1)), Color.BRIGHT_GREEN))
                         found = True
                         break
-                    m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_response())
+                    m = re.search('.*?(\d+) is too (\w+).*', simulation_result.get_output_speech())
                     if m:
                         n = int(m.group(1))
                         w = m.group(2)
@@ -90,7 +90,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
                 else:
                     text = number_to_words(random.randint(1, 100))
             simulation_result = asmc.simulation(text, verbose=True)
-            print(re.sub('<.*?speak>', '', simulation_result.get_response()))
+            print(re.sub('<.*?speak>', '', simulation_result.get_output_speech()))
             print(re.sub('<.*?speak>', '', simulation_result.get_reprompt()))
         self.assertIs(found, True)
 
@@ -101,6 +101,26 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': None, 'text': 'tell plan my trip I\'m going on a trip the day after tomorrow'},
             {'slot': 'toCity', 'text': 'new york'},
             {'slot': 'fromCity', 'text': 'seattle'}
+        ]
+        self.conversation_text(skill_name, intent, conversation, verbose=True)
+
+    def test_crypto_get_price(self):
+        skill_name = 'CryptoSkill'
+        intent = 'GetPrice'
+        conversation = [
+            {'slot': None, 'text': 'ask Crypto what is the Bitcoin price?'},
+        ]
+        self.conversation_text(skill_name, intent, conversation, verbose=True)
+
+    def test_decision_tree_recommend_a_job(self):
+        skill_name = 'DecisionTreeSkill'
+        intent = 'RecommendationIntent'
+        conversation = [
+            {'slot': None, 'text': 'ask Decision Tree to recommend a job'},
+            {'slot': 'salaryImportance', 'text': 'don\'t care about money'},
+            {'slot': 'personality', 'text': 'misunderstood'},
+            {'slot': 'preferredSpecies', 'text': 'animals'},
+            {'slot': 'bloodTolerance', 'text': 'no way'}
         ]
         self.conversation_text(skill_name, intent, conversation, verbose=True)
 

@@ -31,6 +31,9 @@ import requests
 
 from com.dtmilano.util.color import Color
 
+DOT_ALEXA_SKILLS = '.alexa_skills'
+HOME_DOT_ALEXA_SKILLS = str(pathlib.Path.home()) + '/' + DOT_ALEXA_SKILLS
+
 
 class Request:
     class Method:
@@ -51,7 +54,10 @@ class Slot:
         self.__slot = slot
 
     def get_name(self):
-        return self.__slot['name']
+        try:
+            return self.__slot['name']
+        except KeyError:
+            return "<NO NAME>"
 
     def is_elicitation_required(self):
         return self.__slot['elicitationRequired']
@@ -63,10 +69,16 @@ class Slot:
         return self.__slot['prompts']['elicitation']
 
     def get_type(self):
-        return self.__slot['type']
+        try:
+            return self.__slot['type']
+        except KeyError:
+            return "<NO TYPE>"
 
     def is_confirmation_required(self):
         return self.__slot['confirmationRequired']
+
+    def __str__(self):
+        return 'Slot: {{name: {}, type: {}}}'.format(self.get_name(), self.get_type())
 
 
 class Prompt:
@@ -91,12 +103,13 @@ class InteractionModel:
         self.__interaction_model = asmc.obtain_interaction_model()
 
     def get_slots_by_intent(self, intent: str) -> [Slot]:
-        for i in self.__interaction_model['interactionModel']['dialog']['intents']:
-            if i['name'] == intent:
-                slots = []
-                for s in i['slots']:
-                    slots.append(Slot(s))
-                return slots
+        if 'dialog' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['dialog']['intents']:
+                if i['name'] == intent:
+                    slots = []
+                    for s in i['slots']:
+                        slots.append(Slot(s))
+                    return slots
         return None
 
     def get_slot_by_intent(self, slot, intent):
@@ -124,11 +137,12 @@ class InteractionModel:
     def get_prompts_by_intent(self, intent):
         slots = self.get_slots_by_intent(intent)
         prompts = {}
-        for s in slots:
-            if s.is_elicitation_required():
-                e = s.get_elicitation()
-                v = self.get_prompt_variation_by_elicitation(e)
-                prompts[s.get_name()] = v
+        if slots:
+            for s in slots:
+                if s.is_elicitation_required():
+                    e = s.get_elicitation()
+                    v = self.get_prompt_variation_by_elicitation(e)
+                    prompts[s.get_name()] = v
         return prompts
 
     def print(self):
@@ -158,27 +172,48 @@ class InteractionModel:
 
 
 class SimulationResult(object):
-    def __init__(self, simulation_result):
+    def __init__(self, simulation_result, debug=False):
         self.__simulation_result = simulation_result
+        self.debug = debug
 
     def is_fulfilled(self):
         return self.__simulation_result['fulfilled']
 
     def get_slot_value(self, slot):
-        return self.__simulation_result['slots'][slot]['value']
+        try:
+            return self.__simulation_result['slots'][slot]['value']
+        except KeyError:
+            raise RuntimeError('Cannot get slot value for {}: {}'.format(slot, self.__simulation_result['slots']))
 
     def get_slots(self):
         return self.__simulation_result['slots']
 
-    def get_response(self):
-        return self.__simulation_result['response']
+    # def get_response(self):
+    #     return self.__simulation_result['response']
 
     def get_reprompt(self):
         return self.__simulation_result['reprompt']
 
+    def get_output_speech(self):
+        if self.debug:
+            print('DEBUG: get_output_speech: simulation_result = {}'.format(self.__simulation_result))
+        try:
+            _type = self.__simulation_result['outputSpeechType']
+            if _type == 'PlainText':
+                return self.__simulation_result['outputSpeechText']
+            elif _type == 'SSML':
+                return self.__simulation_result['outputSpeechSsml']
+            else:
+                raise RuntimeError('Unknown type: {} for simulation_result: {}'.format(_type, self.__simulation_result))
+        except KeyError:
+            return None
+
+    def __str__(self):
+        return 'SimulationResult {{ {} }}'.format(self.__simulation_result)
+
 
 class AlexaSkillManagementClient:
-    ROOT = 'https://api.amazonalexa.com/'
+    ROOT = 'https://api.amazonalexa.com'
 
     def __init__(self, skill_name, locale='en-US'):
         self.__interaction_model_slots = None
@@ -187,7 +222,12 @@ class AlexaSkillManagementClient:
             raise ValueError('skill_name must be provided')
         self.__skill_id = AlexaSkillManagementClient.get_skill_id(skill_name, locale)
         if not self.__skill_id:
-            raise ValueError('cannot find skillId for {}'.format(skill_name))
+            raise ValueError('''cannot find skillId for {}
+If you haven\'t created the file {} you can do it by running
+
+   $ ask api list-skills >| {}
+
+'''.format(skill_name, HOME_DOT_ALEXA_SKILLS, HOME_DOT_ALEXA_SKILLS))
         self.__locale = locale
         with open(str(pathlib.Path.home()) + '/.ask/cli_config') as f:
             cli_config = json.loads(f.read())
@@ -281,7 +321,7 @@ class AlexaSkillManagementClient:
             if r['status'] == Response.Status.SUCCESSFUL:
                 break
             if r['status'] == Response.Status.FAILED:
-                raise RuntimeError('ERROR: {}'.format(r))
+                raise RuntimeError('ERROR: attempt={} response={}'.format(7 - attempt, r))
             if r['status'] == Response.Status.IN_PROGRESS:
                 attempt -= 1
                 sleep(1)
@@ -301,10 +341,24 @@ class AlexaSkillManagementClient:
         except KeyError:
             should_end_session = None
         try:
-            response = r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['outputSpeech'][
-                'ssml']
+            if debug:
+                print('DEBUG: finding outputSpeech in {}'.format(r))
+                print('DEBUG: finding outputSpeech in {}'.format(
+                    r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['outputSpeech']))
+            output_speech = r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['outputSpeech']
+            output_speech_type = output_speech['type']
+            if output_speech_type == 'PlainText':
+                output_speech_text = output_speech['text']
+                output_speech_ssml = None
+            elif output_speech_type == 'SSML':
+                output_speech_ssml = output_speech['ssml']
+                output_speech_text = None
+            else:
+                raise RuntimeError('Unknown output speech type: {}'.format(output_speech_type))
         except KeyError:
-            response = None
+            output_speech_ssml = None
+            output_speech_text = None
+            output_speech_type = None
         try:
             reprompt = \
                 r['result']['skillExecutionInfo']['invocationResponse']['body']['response']['reprompt']['outputSpeech'][
@@ -326,8 +380,9 @@ class AlexaSkillManagementClient:
         except KeyError:
             fulfilled = None
             slots = None
-
-        return SimulationResult({'directives': directives, 'shouldEndSession': should_end_session, 'response': response,
+        return SimulationResult({'directives': directives, 'shouldEndSession': should_end_session,
+                                 'outputSpeechSsml': output_speech_ssml, 'outputSpeechText': output_speech_text,
+                                 'outputSpeechType': output_speech_type,
                                  'reprompt': reprompt,
                                  'fulfilled': fulfilled, 'slots': slots})
 
@@ -343,15 +398,20 @@ class AlexaSkillManagementClient:
         """
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/simulations'.format(skillId=self.__skill_id)
+        if text:
+            text = text.lower()
         body = {'input': {'content': text}, 'device': {'locale': self.__locale}}
         if verbose:
             print(Color.colorize('>> saying: {}'.format(text), Color.BRIGHT_BLUE))
         r = self.__request(request, body, method, debug)
-        if r and r['status'] == Response.Status.IN_PROGRESS:
-            simulation_id = r['id']
-            return self.__get_simulation(simulation_id, debug)
+        if r:
+            if r['status'] == Response.Status.IN_PROGRESS:
+                simulation_id = r['id']
+                return self.__get_simulation(simulation_id, debug)
+            elif r['status'] == Response.Status.FAILED:
+                raise RuntimeError('ERROR: FAILED response: {}'.format(r))
         else:
-            raise RuntimeError('ERROR: {}'.format(r))
+            raise RuntimeError('ERROR: No response')
 
     def conversation_step(self, step: {}, verbose: bool, debug: bool = False) -> SimulationResult:
         """
@@ -364,22 +424,30 @@ class AlexaSkillManagementClient:
         """
         if self.__conversation_status != 'STARTED':
             raise RuntimeError('Conversation has not been started')
-        forgive = True
+        forgive = False
         slot = step['slot']
         prompt = step['prompt']
         text = step['text']
         simulation_result = None
 
-        while forgive and not simulation_result:
+        # while forgive and not simulation_result:
+        while not simulation_result:
             try:
                 if verbose:
                     print('\n')
                 if verbose and prompt:
                     print(prompt)
                 simulation_result = self.simulation(text, verbose, debug)
-                if verbose and simulation_result and slot:
-                    print(Color.colorize('<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
-                                         Color.BRIGHT_BLACK))
+                if verbose and simulation_result:
+                    if simulation_result.get_output_speech():
+                        print(Color.colorize('<< {}'.format(simulation_result.get_output_speech()), Color.BRIGHT_WHITE,
+                                             Color.BLACK))
+                    else:
+                        if debug:
+                            print('DEBUG: sr = {}'.format(simulation_result))
+                    if slot:
+                        print(Color.colorize('<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
+                                             Color.BRIGHT_BLACK))
                 if verbose:
                     print()
             except RuntimeError as ex:
@@ -391,8 +459,12 @@ class AlexaSkillManagementClient:
 
     def __request(self, request, body=None, method=Request.Method.GET, debug=False):
         headers = {'Authorization': self.__access_token,
-                   'Content-Type': 'application/json',
-                   'Accept': 'application/json'}
+                   'content-Type': 'application/json',
+                   'accept': 'application/json',
+                   'User-Agent': 'ask-cli/1.0.0-beta.8 Node/v9.2.0'}
+        if debug:
+            print('DEBUG: __request: headers = {}'.format(headers))
+            print('DEBUG: __request: {} {}'.format(method, self.ROOT + request))
         if method == Request.Method.GET:
             r = requests.get(self.ROOT + request, headers=headers)
             if r.status_code != 200:
@@ -401,6 +473,8 @@ class AlexaSkillManagementClient:
                 raise RuntimeError('{}: {}'.format(r, r.json()['message']))
         elif method == Request.Method.POST:
             r = requests.post(self.ROOT + request, headers=headers, data=json.dumps(body))
+            if debug:
+                print('DEBUG: __request: body = {}'.format(body))
             if r.status_code != 200:
                 print(r, file=sys.stderr)
                 try:
@@ -427,12 +501,12 @@ class AlexaSkillManagementClient:
     @staticmethod
     def get_skill_id(skill_name, locale='en-US', debug=False):
         try:
-            with open(str(pathlib.Path.home()) + '/.alexa_skills') as f:
+            with open(HOME_DOT_ALEXA_SKILLS) as f:
                 alexa_skills = json.loads(f.read())['skills']
         except IOError:
             print(
-                'ERROR: Cannot open ~/.alexa_skills.\n' +
-                'You can generate it with the command: \'ask api list-skills > ~/.alexa_skills\'',
+                'ERROR: Cannot open ~/{}.\n'.format(DOT_ALEXA_SKILLS) +
+                'You can generate it with the command: \'ask api list-skills > ~/{}\''.format(DOT_ALEXA_SKILLS),
                 file=sys.stderr)
             sys.exit(1)
         for s in alexa_skills:
@@ -442,7 +516,7 @@ class AlexaSkillManagementClient:
                 return s['skillId']
         return None
 
-    def conversation_start(self, intent_name: str, conversation: [], verbose: bool) -> None:
+    def conversation_start(self, intent_name: str, conversation: [], verbose: bool, debug=False) -> None:
         if verbose:
             print('\n')
             print("Start conversation")
@@ -455,6 +529,12 @@ class AlexaSkillManagementClient:
             else:
                 c['prompt'] = None
         self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
+        if debug:
+            if self.__interaction_model_slots:
+                for s in self.__interaction_model_slots:
+                    print('DEBUG: slots_by_intent = {}'.format(s))
+            else:
+                print('DEBUG: no slots')
         self.__conversation_status = 'STARTED'
 
     def conversation_end(self) -> None:
@@ -464,11 +544,11 @@ class AlexaSkillManagementClient:
 def main():
     bmts = AlexaSkillManagementClient('BookMyTripSkill')
     if not bmts:
-        raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format('BookMyTripSkill'))
+        raise RuntimeError('Cannot find skill_name {} definition in ~/{}'.format('BookMyTripSkill', DOT_ALEXA_SKILLS))
 
     hlg = AlexaSkillManagementClient('High Low Game')
     if not hlg:
-        raise RuntimeError('Cannot find skill_name {} definition in ~/.alexa_skills'.format('High Low Game'))
+        raise RuntimeError('Cannot find skill_name {} definition in ~/{}'.format('High Low Game', DOT_ALEXA_SKILLS))
 
     # simulation_result = None
     print('\nskill info')

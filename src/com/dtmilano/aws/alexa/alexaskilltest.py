@@ -64,7 +64,7 @@ class AlexaSkillTest(TestCase):
         simulation_result = None
         fulfilled = False
         for c in conversation:
-            simulation_result = self.asmc.conversation_step(c, verbose)
+            simulation_result = self.asmc.conversation_step(c, verbose, debug=False)
             fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
             sleep(1)
         self.asmc.conversation_end()

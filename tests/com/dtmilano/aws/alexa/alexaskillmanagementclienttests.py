@@ -46,7 +46,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': 'DriverAge', 'text': 'twenty five'},
             {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
         ]
-        self.conversation_text(skill_name, intent, conversation, verbose=True)
+        self.conversation_text(skill_name, intent, conversation, verbose=verbose)
 
     def test_high_low_game(self):
         asmc = AlexaSkillManagementClient('High Low Game')
@@ -102,7 +102,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': 'toCity', 'text': 'new york'},
             {'slot': 'fromCity', 'text': 'seattle'}
         ]
-        self.conversation_text(skill_name, intent, conversation, verbose=True)
+        self.conversation_text(skill_name, intent, conversation, verbose=verbose)
 
     def test_crypto_get_price(self):
         skill_name = 'CryptoSkill'
@@ -110,7 +110,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         conversation = [
             {'slot': None, 'text': 'ask Crypto what is the Bitcoin price?'},
         ]
-        self.conversation_text(skill_name, intent, conversation, verbose=True)
+        self.conversation_text(skill_name, intent, conversation, verbose=verbose)
 
     def test_decision_tree_recommend_a_job(self):
         skill_name = 'DecisionTreeSkill'
@@ -122,7 +122,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': 'preferredSpecies', 'text': 'animals'},
             {'slot': 'bloodTolerance', 'text': 'no way'}
         ]
-        self.conversation_text(skill_name, intent, conversation, verbose=True)
+        self.conversation_text(skill_name, intent, conversation, verbose=verbose)
 
 
 if __name__ == '__main__':

@@ -199,6 +199,8 @@ class SimulationResult(object):
             print('DEBUG: get_output_speech: simulation_result = {}'.format(self.__simulation_result))
         try:
             _type = self.__simulation_result['outputSpeechType']
+            if _type is None:
+                return None
             if _type == 'PlainText':
                 return self.__simulation_result['outputSpeechText']
             elif _type == 'SSML':

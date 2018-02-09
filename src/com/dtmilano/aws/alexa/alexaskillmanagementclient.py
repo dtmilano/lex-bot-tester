@@ -294,7 +294,7 @@ to refresh it.""")
                         if verbose:
                             print(r['result']['skillExecutionInfo']['invocationResponse'])
                         if r['result']['skillExecutionInfo']['invocationResponse']['body']['response'][
-                            'shouldEndSession']:
+                                'shouldEndSession']:
                             return True
                     except KeyError:
                         try:

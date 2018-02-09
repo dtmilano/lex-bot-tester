@@ -49,6 +49,20 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         ]
         self.conversation_text(skill_name, intent, conversation, verbose=verbose)
 
+    def test_book_my_trip_reserve_a_car_invalid_slot_name(self):
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        conversation = [
+            {'slot': None, 'text': 'ask book my trip to reserve a car'},
+            {'slot': 'DoesNotExist', 'text': 'something'},
+            {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
+        ]
+        try:
+            self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+            self.fail("Invalid slot name not detected")
+        except ValueError:
+            pass
+
     def test_high_low_game(self):
         asmc = AlexaSkillManagementClient('High Low Game')
         conversation = ['start high low game', 'yes', 'twenty four', '$random',
@@ -113,12 +127,16 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': None, 'text': 'ask Crypto what is the {} price?'.format(coin)},
         ]
         simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+        # noinspection PyCompatibility
         self.assertRegex(
             simulation_result.get_output_speech(),
             re.compile('Current price of {} is \d+(\.?\d+)* euros\.'.format(coin), re.IGNORECASE)
         )
 
     def test_decision_tree_recommend_a_job(self):
+        """
+        see: https://github.com/alexa/skill-sample-nodejs-decision-tree
+        """
         skill_name = 'DecisionTreeSkill'
         intent = 'RecommendationIntent'
         conversation = [
@@ -129,6 +147,32 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             {'slot': 'bloodTolerance', 'text': 'no way'}
         ]
         self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+
+    def test_hello_world(self):
+        skill_name = 'SampleSkill'
+        intent = 'HelloWorldIntent'
+        conversation = [
+            {'slot': None, 'text': 'ask Hello World to say hello'},
+        ]
+        simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+        # noinspection PyCompatibility
+        self.assertRegex(
+            simulation_result.get_output_speech(),
+            re.compile('Hello World')
+        )
+
+    def test_hello_world_invalid_slot(self):
+        skill_name = 'SampleSkill'
+        intent = 'HelloWorldIntent'
+        conversation = [
+            {'slot': None, 'text': 'ask Hello World to say hello'},
+            {'slot': 'InvalidSlot', 'text': 'this intent has no slots'},
+        ]
+        try:
+            self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+            self.fail('Invalid slot not detected')
+        except ValueError:
+            pass
 
 
 if __name__ == '__main__':

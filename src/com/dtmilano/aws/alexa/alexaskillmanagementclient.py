@@ -230,13 +230,19 @@ If you haven\'t created the file {} you can do it by running
    $ ask api list-skills >| {}
 
 '''.format(skill_name, HOME_DOT_ALEXA_SKILLS, HOME_DOT_ALEXA_SKILLS))
+        self.__skill_name = skill_name
         self.__locale = locale
         with open(str(pathlib.Path.home()) + '/.ask/cli_config') as f:
             cli_config = json.loads(f.read())
         expires_at = datetime.strptime(cli_config['profiles']['default']['token']['expires_at'],
                                        '%Y-%m-%dT%H:%M:%S.%fZ')
         if expires_at < datetime.utcnow():
-            raise RuntimeError("ASK access token is expired.\nYou can run 'ask api list-skills' to refresh it.")
+            raise RuntimeError("""ASK access token is expired.
+You can run 
+
+    $ ask api list-skills >/dev/null
+    
+to refresh it.""")
         else:
             self.__access_token = cli_config['profiles']['default']['token']['access_token']
 
@@ -525,12 +531,15 @@ If you haven\'t created the file {} you can do it by running
             print("------------------")
         interaction_model = self.get_interaction_model()
         prompts = interaction_model.get_prompts_by_intent(intent_name)
+        self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
         for c in conversation:
             if c['slot']:
-                c['prompt'] = prompts[c['slot']]
+                try:
+                    c['prompt'] = prompts[c['slot']]
+                except KeyError:
+                    self.__invalid_slot(c['slot'], intent_name)
             else:
                 c['prompt'] = None
-        self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
         if debug:
             if self.__interaction_model_slots:
                 for s in self.__interaction_model_slots:
@@ -538,6 +547,18 @@ If you haven\'t created the file {} you can do it by running
             else:
                 print('DEBUG: no slots')
         self.__conversation_status = 'STARTED'
+
+    def __invalid_slot(self, slot, intent_name):
+        if self.__interaction_model_slots:
+            slot_names = [s.get_name() for s in self.__interaction_model_slots]
+            raise ValueError(
+                'intent \'{}\' of skill \'{}\' does not define a slot named \'{}\'. Valid slots are {}'.format(
+                    intent_name, self.__skill_name,
+                    slot,
+                    slot_names))
+        else:
+            raise ValueError('intent \'{}\' of skill \'{}\' does not define any slots.'.format(intent_name,
+                                                                                               self.__skill_name))
 
     def conversation_end(self) -> None:
         self.__conversation_status = None

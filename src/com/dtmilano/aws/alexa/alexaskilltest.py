@@ -31,6 +31,7 @@ class AlexaSkillTest(TestCase):
     """
     Base class for Alexa Skill Tests.
     """
+
     def setUp(self):
         super(AlexaSkillTest, self).setUp()
 
@@ -68,8 +69,16 @@ class AlexaSkillTest(TestCase):
             fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
             sleep(1)
         self.asmc.conversation_end()
-        self.assertTrue(fulfilled,
-                        'Some slots have no values:\n{}\n'.format(
-                            simulation_result.get_slots() if simulation_result else 'no slots available')
-                        )
+        msg = ''
+        if simulation_result:
+            slots = simulation_result.get_slots()
+            if slots:
+                msg = slots
+            else:
+                msg = 'no slots available'
+        else:
+            msg = 'no simulation result'
+            slots = None
+
+        self.assertTrue(fulfilled or not slots, 'Some slots have no values:\n{}\n'.format(msg))
         return simulation_result

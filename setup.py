@@ -14,7 +14,7 @@ except IOError:
     README = ''
 
 setup(name='lex-bot-tester',
-      version='0.9.9',
+      version='0.9.10',
       description='''lex-bot-tester is a library that simplifies the creation of Amazon Alexa Skills and AWS Lex Bot tests.''',
       long_description=README,
       license='GPL-3.0',

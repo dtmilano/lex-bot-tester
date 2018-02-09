@@ -69,7 +69,6 @@ class AlexaSkillTest(TestCase):
             fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
             sleep(1)
         self.asmc.conversation_end()
-        msg = ''
         if simulation_result:
             slots = simulation_result.get_slots()
             if slots:

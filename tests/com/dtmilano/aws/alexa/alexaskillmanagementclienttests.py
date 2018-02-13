@@ -26,6 +26,7 @@ import unittest
 
 from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
 from com.dtmilano.aws.alexa.alexaskilltest import AlexaSkillTest
+from com.dtmilano.aws.alexa.alexatestbuilder import AlexaTestBuilder
 from com.dtmilano.util.color import Color
 from com.dtmilano.util.conversion import number_to_words
 
@@ -62,6 +63,13 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             self.fail("Invalid slot name not detected")
         except ValueError:
             pass
+
+    def test_book_my_trip_reserve_a_car_learn(self):
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        conversation = self.learn_conversation(skill_name, intent)
+        print(self.create_test('test_sample', skill_name, intent, conversation))
+        self.conversation_text(skill_name, intent, conversation, verbose=True)
 
     def test_high_low_game(self):
         asmc = AlexaSkillManagementClient('High Low Game')
@@ -173,6 +181,93 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
             self.fail('Invalid slot not detected')
         except ValueError:
             pass
+
+    def test_create_test_simulated_input(self):
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        simulated_input = {
+            '$launch_text': 'ask book my trip to reserve a car',
+            'CarType': 'midsize',
+            'PickUpCity': 'buenos aires',
+            'PickUpDate': 'tomorrow',
+            'ReturnDate': 'five days from now',
+            'DriverAge': 'twenty five',
+            '$confirmation_text': 'yes',
+        }
+
+        conversation = AlexaTestBuilder.learn_conversation(skill_name, intent, simulated_input)
+        self.assertIsNotNone(conversation)
+        test_name = 'test_sample'
+        test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
+        self.assertIsNotNone(test_code)
+        self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))
+        print(test_code)
+        # exec(test_code)
+        # exec('test_sample(self)')
+
+    def test_create_test_user_input(self):
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        conversation = AlexaTestBuilder.learn_conversation(skill_name, intent)
+        self.assertIsNotNone(conversation)
+        test_name = 'test_sample'
+        test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
+        self.assertIsNotNone(test_code)
+        self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))
+        # this prints the generated test code
+        print(test_code)
+
+    def test_create_test_BookMyTripSkill_BookCar_user_input(self):
+        print(AlexaTestBuilder.create_test('test_sample', 'BookMyTripSkill', 'BookCar'))
+
+    def test_create_test_PlanMyTripSkill_PlanMyTrip_user_input(self):
+        print(AlexaTestBuilder.create_test('test_sample', 'PlanMyTripSkill', 'PlanMyTrip'))
+
+    def test_create_test_PlanMyTripSkill_PlanMyTrip_no_intent_user_input(self):
+        print(AlexaTestBuilder.create_test('test_sample', 'PlanMyTripSkill'))
+
+    def test_sample(self):
+        """
+        Generated test by `test_create_test_simulated_input`.
+
+        :return:
+        """
+        skill_name = 'BookMyTripSkill'
+        intent = 'BookCar'
+        conversation = [{'slot': None, 'text': 'ask book my trip to reserve a car', 'prompt': None},
+                        {'slot': 'CarType', 'text': 'midsize',
+                         'prompt': 'What type of car would you like to rent,  Our most popular options are economy, midsize, and luxury'},
+                        {'slot': 'PickUpCity', 'text': 'buenos aires',
+                         'prompt': 'In what city do you need to rent a car?'},
+                        {'slot': 'PickUpDate', 'text': 'tomorrow',
+                         'prompt': 'What day do you want to start your rental?'},
+                        {'slot': 'ReturnDate', 'text': 'five days from now',
+                         'prompt': 'What day do you want to return the car?'},
+                        {'slot': 'DriverAge', 'text': 'twenty five',
+                         'prompt': 'How old is the driver for this rental?'},
+                        {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}]
+        simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=verbose)
+        self.assertIsNotNone(simulation_result)
+        self.assertTrue(simulation_result.is_fulfilled())
+        for s in simulation_result.get_slots():
+            value = simulation_result.get_slot_value(s)
+            self.assertIsNotNone(value)
+            print('{}: {}'.format(s, value))
+
+    def test_sample_2(self):
+        skill_name = 'PlanMyTripSkill'
+        intent = 'PlanMyTrip'
+        conversation = [
+            {'slot': None, 'text': 'tell plan my trip I\'m going on a trip the day after tomorrow', 'prompt': None},
+            {'slot': 'toCity', 'text': 'seattle', 'prompt': 'Where are you going?'},
+            {'slot': 'fromCity', 'text': 'new york', 'prompt': 'What city are you leaving from?'},
+            # {'slot': 'travelDate', 'text': None, 'prompt': 'When will you start this trip?'},
+            # {'slot': 'activity', 'text': None, 'prompt': None},
+            # {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}
+        ]
+        simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=True)
+        self.assertIsNotNone(simulation_result)
+        self.assertTrue(simulation_result.is_fulfilled())
 
 
 if __name__ == '__main__':

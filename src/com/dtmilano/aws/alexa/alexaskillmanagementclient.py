@@ -110,6 +110,7 @@ class InteractionModel:
                     for s in i['slots']:
                         slots.append(Slot(s))
                     return slots
+            raise ValueError('Cannot find intent \'{}\''.format(intent))
         return None
 
     def get_slot_by_intent(self, slot, intent):
@@ -145,15 +146,19 @@ class InteractionModel:
                     prompts[s.get_name()] = v
         return prompts
 
-    def print(self):
-        pprint(self.__interaction_model)
+    def print(self, file=sys.stdout):
+        pprint(self.__interaction_model, stream=file)
+        print(self.str(), file=file)
+
+    def str(self):
+        s = ''
         if self.__interaction_model:
-            print('dialog')
+            s += 'dialog\n'
             intents = self.__interaction_model['interactionModel']['dialog']['intents']
             for i in intents:
-                print(i['name'])
+                s += i['name'] + '\n'
                 for s in i['slots']:
-                    print('\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired']))
+                    s += '\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired'])
                     if 'prompts' in s:
                         for p in s['prompts'].keys():
                             v = s['prompts'][p]
@@ -161,14 +166,22 @@ class InteractionModel:
                                 if p2['id'] == v:
                                     for v2 in p2['variations']:
                                         if v2['type'] == 'PlainText':
-                                            print('\t\t{}'.format(v2['value']))
-            print()
-            print('languageModel')
+                                            s += '\t\t{}'.format(v2['value'])
+            s += '\n'
+            s += 'languageModel\n'
             intents = self.__interaction_model['interactionModel']['languageModel']['intents']
             for i in intents:
-                print(i['name'])
+                s += i['name'] + '\n'
         else:
             print('ERROR', file=sys.stderr)
+        return s
+
+    def get_intents(self):
+        intents = []
+        if 'dialog' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['dialog']['intents']:
+                intents.append(i)
+        return intents
 
 
 class SimulationResult(object):
@@ -445,6 +458,8 @@ to refresh it.""")
                     print('\n')
                 if verbose and prompt:
                     print(prompt)
+                if text == '$input':
+                    text = input('input:')
                 simulation_result = self.simulation(text, verbose, debug)
                 if verbose and simulation_result:
                     if simulation_result.get_output_speech():
@@ -452,7 +467,7 @@ to refresh it.""")
                                              Color.BLACK))
                     else:
                         if debug:
-                            print('DEBUG: sr = {}'.format(simulation_result))
+                            print('DEBUG: simulation_result = {}'.format(simulation_result))
                     if slot:
                         print(Color.colorize('<< {}'.format(simulation_result.get_slot_value(slot)), Color.BRIGHT_WHITE,
                                              Color.BRIGHT_BLACK))
@@ -514,7 +529,8 @@ to refresh it.""")
         except IOError:
             print(
                 'ERROR: Cannot open ~/{}.\n'.format(DOT_ALEXA_SKILLS) +
-                'You can generate it with the command: \'ask api list-skills > ~/{}\''.format(DOT_ALEXA_SKILLS),
+                'You can generate it with the command:\n' +
+                '    $ ask api list-skills > ~/{}\n'.format(DOT_ALEXA_SKILLS),
                 file=sys.stderr)
             sys.exit(1)
         for s in alexa_skills:
@@ -530,16 +546,7 @@ to refresh it.""")
             print("Start conversation")
             print("------------------")
         interaction_model = self.get_interaction_model()
-        prompts = interaction_model.get_prompts_by_intent(intent_name)
-        self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
-        for c in conversation:
-            if c['slot']:
-                try:
-                    c['prompt'] = prompts[c['slot']]
-                except KeyError:
-                    self.__invalid_slot(c['slot'], intent_name)
-            else:
-                c['prompt'] = None
+        self.fill_prompts_in_conversation(conversation, intent_name, interaction_model)
         if debug:
             if self.__interaction_model_slots:
                 for s in self.__interaction_model_slots:
@@ -547,6 +554,23 @@ to refresh it.""")
             else:
                 print('DEBUG: no slots')
         self.__conversation_status = 'STARTED'
+
+    def fill_prompts_in_conversation(self, conversation, intent_name, interaction_model):
+        prompts = interaction_model.get_prompts_by_intent(intent_name)
+        self.__interaction_model_slots = interaction_model.get_slots_by_intent(intent_name)
+        for c in conversation:
+            if 'prompt' not in c or not c['prompt']:
+                # if prompt has not been set already, we set it here
+                if c['slot']:
+                    if c['slot'] in prompts:
+                        c['prompt'] = prompts[c['slot']]
+                    else:
+                        if c['slot'] in [s.get_name() for s in self.__interaction_model_slots]:
+                            c['prompt'] = None
+                        else:
+                            self.__invalid_slot(c['slot'], intent_name)
+                else:
+                    c['prompt'] = None
 
     def __invalid_slot(self, slot, intent_name):
         if self.__interaction_model_slots:

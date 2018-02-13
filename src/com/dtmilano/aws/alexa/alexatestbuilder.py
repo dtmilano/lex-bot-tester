@@ -59,14 +59,16 @@ class AlexaTestBuilder(object):
     @staticmethod
     def create_test(test_name=None, skill_name=None, intent_name=None, conversation=None):
         if not test_name:
-            test_name = input('Test method name: ')
+            test_name = input('Test method name [my_test]: ') or 'my_test'
         if not skill_name:
             skill_names = AlexaSkillManagementClient.get_skill_names()
             if len(skill_names) == 1:
                 skill_name = skill_names[0]
                 print('Using skill {}'.format(skill_name))
             else:
-                skill_name = input('Skill {}: '.format(skill_names))
+                skill_name = None
+                while skill_name not in skill_names:
+                    skill_name = input('Skill {}: '.format(skill_names))
         asmc = AlexaSkillManagementClient(skill_name)
         if not intent_name:
             intent_names = [i['name'] for i in asmc.get_interaction_model().get_intents()]
@@ -74,7 +76,9 @@ class AlexaTestBuilder(object):
                 intent_name = intent_names[0]
                 print('Using intent {}'.format(intent_name))
             else:
-                intent_name = input('Intent {}: '.format(intent_names))
+                intent_name = None
+                while intent_name not in intent_names:
+                    intent_name = input('Intent {}: '.format(intent_names))
         if not conversation:
             conversation = AlexaTestBuilder.learn_conversation(skill_name, intent_name)
         d = {'test_name': test_name, 'skill_name': skill_name, 'intent_name': intent_name, 'conversation': conversation,

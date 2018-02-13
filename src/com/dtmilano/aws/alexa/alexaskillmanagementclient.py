@@ -522,10 +522,14 @@ to refresh it.""")
         return r.json()
 
     @staticmethod
-    def get_skill_id(skill_name, locale='en-US', debug=False):
+    def get_skill_names(locale='en-US'):
+        return [s['nameByLocale'][locale] for s in AlexaSkillManagementClient.get_skills()]
+
+    @staticmethod
+    def get_skills():
         try:
             with open(HOME_DOT_ALEXA_SKILLS) as f:
-                alexa_skills = json.loads(f.read())['skills']
+                return json.loads(f.read())['skills']
         except IOError:
             print(
                 'ERROR: Cannot open ~/{}.\n'.format(DOT_ALEXA_SKILLS) +
@@ -533,7 +537,10 @@ to refresh it.""")
                 '    $ ask api list-skills > ~/{}\n'.format(DOT_ALEXA_SKILLS),
                 file=sys.stderr)
             sys.exit(1)
-        for s in alexa_skills:
+
+    @staticmethod
+    def get_skill_id(skill_name, locale='en-US', debug=False):
+        for s in AlexaSkillManagementClient.get_skills():
             if debug:
                 print('DEBUG: s={}'.format(s))
             if s['nameByLocale'][locale] == skill_name:

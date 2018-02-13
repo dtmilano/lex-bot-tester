@@ -23,6 +23,8 @@ from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManageme
 
 
 class AlexaTestBuilder(object):
+    generation_language = 'python'
+
     @staticmethod
     def __input_text(slot, prompt, simulated_input=None):
         if simulated_input and slot in simulated_input:
@@ -72,6 +74,14 @@ class AlexaTestBuilder(object):
             conversation = AlexaTestBuilder.learn_conversation(skill_name, intent_name)
         d = {'test_name': test_name, 'skill_name': skill_name, 'intent_name': intent_name, 'conversation': conversation,
              'now': str(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"))}
+        if AlexaTestBuilder.generation_language == 'python':
+            s = AlexaTestBuilder.create_test_python(d)
+        else:
+            raise RuntimeError('language not yet supported')
+        return s
+
+    @staticmethod
+    def create_test_python(d):
         s = '''
     def {test_name}(self):
         """

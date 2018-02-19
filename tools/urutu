@@ -1,0 +1,43 @@
+#! /usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+    Lex Bot Tester
+    Copyright (C) 2017-2018  Diego Torres Milano
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+"""
+import sys
+
+from com.dtmilano.aws.alexa.alexatestbuilder import AlexaTestBuilder
+
+
+class Urutu(object):
+    progname = 'urutu'
+
+    @staticmethod
+    def main(args):
+        if '--help' in args or '-H' in args:
+            Urutu.help()
+        print('Generating test...')
+        atb = AlexaTestBuilder(generator='urutu', generation_language='python')
+        print(atb.create_test(*args))
+
+    @staticmethod
+    def help():
+        print('usage: {} [--help | -H] [method-name [skill-name [intent-name]]]'.format(Urutu.progname))
+        sys.exit(0)
+
+
+if __name__ == '__main__':
+    Urutu.main(sys.argv[1:])

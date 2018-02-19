@@ -65,9 +65,12 @@ class AlexaSkillTest(TestCase):
         simulation_result = None
         fulfilled = False
         for c in conversation:
-            simulation_result = self.asmc.conversation_step(c, verbose, debug=False)
-            fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
-            sleep(1)
+            if c['text']:
+                simulation_result = self.asmc.conversation_step(c, verbose, debug=False)
+                fulfilled = fulfilled or (simulation_result.is_fulfilled() if simulation_result else False)
+                sleep(1)
+            elif c['prompt']:
+                print('WARNING: prompt but no text: {}'.format(c['prompt']))
         self.asmc.conversation_end()
         if simulation_result:
             slots = simulation_result.get_slots()
@@ -81,3 +84,15 @@ class AlexaSkillTest(TestCase):
 
         self.assertTrue(fulfilled or not slots, 'Some slots have no values:\n{}\n'.format(msg))
         return simulation_result
+
+    def assertSimulationResultIsCorrect(self, simulation_result, verbose=False):
+        self.assertIsNotNone(simulation_result)
+        self.assertTrue(simulation_result.is_fulfilled())
+        if verbose:
+            print('Simulation Result')
+            print('-----------------')
+        for s in simulation_result.get_slots():
+            value = simulation_result.get_slot_value(s)
+            self.assertIsNotNone(value)
+            if verbose:
+                print('{}: {}'.format(s, value))

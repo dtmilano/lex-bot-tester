@@ -60,7 +60,10 @@ class Slot:
             return "<NO NAME>"
 
     def is_elicitation_required(self):
-        return self.__slot['elicitationRequired']
+        try:
+            return self.__slot['elicitationRequired']
+        except KeyError:
+            return False
 
     def get_prompts(self):
         return self.__slot['prompts']
@@ -102,13 +105,27 @@ class InteractionModel:
     def __init__(self, asmc):
         self.__interaction_model = asmc.obtain_interaction_model()
 
+    def get_invocation_name(self):
+        try:
+            return self.__interaction_model['interactionModel']['languageModel']['invocationName']
+        except KeyError:
+            raise ValueError('Cannot find invocation name')
+
     def get_slots_by_intent(self, intent: str) -> [Slot]:
-        if 'dialog' in self.__interaction_model['interactionModel']:
-            for i in self.__interaction_model['interactionModel']['dialog']['intents']:
+        if 'languageModel' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['languageModel']['intents']:
                 if i['name'] == intent:
                     slots = []
-                    for s in i['slots']:
-                        slots.append(Slot(s))
+                    if 'slots' in i:
+                        for s in i['slots']:
+                            if 'dialog' in self.__interaction_model['interactionModel']:
+                                for ii in self.__interaction_model['interactionModel']['dialog']['intents']:
+                                    if ii['name'] == intent:
+                                        for ss in ii['slots']:
+                                            if ss['name'] == s['name']:
+                                                slots.append(Slot(ss))
+                            else:
+                                slots.append(Slot(s))
                     return slots
             raise ValueError('Cannot find intent \'{}\''.format(intent))
         return None
@@ -117,6 +134,17 @@ class InteractionModel:
         for s in self.get_slots_by_intent(intent):
             if s.get_name() == slot:
                 return s
+        return None
+
+    def get_samples_by_intent(self, intent):
+        if 'languageModel' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['languageModel']['intents']:
+                if i['name'] == intent:
+                    if 'samples' in i:
+                        return i['samples']
+                    else:
+                        return None
+            raise ValueError('Cannot find intent \'{}\''.format(intent))
         return None
 
     def get_prompts(self):
@@ -153,25 +181,27 @@ class InteractionModel:
     def str(self):
         s = ''
         if self.__interaction_model:
-            s += 'dialog\n'
-            intents = self.__interaction_model['interactionModel']['dialog']['intents']
-            for i in intents:
-                s += i['name'] + '\n'
-                for s in i['slots']:
-                    s += '\t{}: {} {}'.format(s['name'], s['type'], s['elicitationRequired'])
-                    if 'prompts' in s:
-                        for p in s['prompts'].keys():
-                            v = s['prompts'][p]
-                            for p2 in self.__interaction_model['interactionModel']['prompts']:
-                                if p2['id'] == v:
-                                    for v2 in p2['variations']:
-                                        if v2['type'] == 'PlainText':
-                                            s += '\t\t{}'.format(v2['value'])
-            s += '\n'
-            s += 'languageModel\n'
-            intents = self.__interaction_model['interactionModel']['languageModel']['intents']
-            for i in intents:
-                s += i['name'] + '\n'
+            if 'dialog' in self.__interaction_model['interactionModel']:
+                s += 'dialog\n'
+                intents = self.__interaction_model['interactionModel']['dialog']['intents']
+                for i in intents:
+                    s += i['name'] + '\n'
+                    for _s in i['slots']:
+                        print('DEBUG: {}'.format(_s), file=sys.stderr)
+                        s += '\t{}: {} {}'.format(_s['name'], _s['type'], _s['elicitationRequired'])
+                        if 'prompts' in _s:
+                            for p in _s['prompts'].keys():
+                                v = _s['prompts'][p]
+                                for p2 in self.__interaction_model['interactionModel']['prompts']:
+                                    if p2['id'] == v:
+                                        for v2 in p2['variations']:
+                                            if v2['type'] == 'PlainText':
+                                                s += '\t\t{}'.format(v2['value'])
+                s += '\n'
+                s += 'languageModel\n'
+                intents = self.__interaction_model['interactionModel']['languageModel']['intents']
+                for i in intents:
+                    s += i['name'] + '\n'
         else:
             print('ERROR', file=sys.stderr)
         return s
@@ -181,7 +211,17 @@ class InteractionModel:
         if 'dialog' in self.__interaction_model['interactionModel']:
             for i in self.__interaction_model['interactionModel']['dialog']['intents']:
                 intents.append(i)
+        if 'languageModel' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['languageModel']['intents']:
+                intents.append(i)
         return intents
+
+    def get_intent(self, intent_name):
+        if 'languageModel' in self.__interaction_model['interactionModel']:
+            for i in self.__interaction_model['interactionModel']['languageModel']['intents']:
+                if i['name'] == intent_name:
+                    return i
+        raise ValueError('Cannot find intent {}'.format(intent_name))
 
 
 class SimulationResult(object):
@@ -307,7 +347,7 @@ to refresh it.""")
                         if verbose:
                             print(r['result']['skillExecutionInfo']['invocationResponse'])
                         if r['result']['skillExecutionInfo']['invocationResponse']['body']['response'][
-                                'shouldEndSession']:
+                            'shouldEndSession']:
                             return True
                     except KeyError:
                         try:
@@ -450,6 +490,9 @@ to refresh it.""")
         prompt = step['prompt']
         text = step['text']
         simulation_result = None
+
+        if not prompt and not text:
+            return None
 
         # while forgive and not simulation_result:
         while not simulation_result:

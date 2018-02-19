@@ -200,6 +200,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         test_name = 'test_sample'
         test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
         self.assertIsNotNone(test_code)
+        # noinspection PyCompatibility
         self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))
         print(test_code)
         # exec(test_code)
@@ -213,6 +214,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         test_name = 'test_sample'
         test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
         self.assertIsNotNone(test_code)
+        # noinspection PyCompatibility
         self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))
         # this prints the generated test code
         print(test_code)
@@ -247,12 +249,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
                          'prompt': 'How old is the driver for this rental?'},
                         {'slot': None, 'prompt': 'Confirmation', 'text': 'yes'}]
         simulation_result = self.conversation_text(skill_name, intent, conversation, verbose=verbose)
-        self.assertIsNotNone(simulation_result)
-        self.assertTrue(simulation_result.is_fulfilled())
-        for s in simulation_result.get_slots():
-            value = simulation_result.get_slot_value(s)
-            self.assertIsNotNone(value)
-            print('{}: {}'.format(s, value))
+        self.assertSimulationResultIsCorrect(simulation_result, verbose=verbose)
 
     def test_sample_2(self):
         skill_name = 'PlanMyTripSkill'

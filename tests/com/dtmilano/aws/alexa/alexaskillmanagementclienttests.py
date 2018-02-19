@@ -220,13 +220,13 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         print(test_code)
 
     def test_create_test_BookMyTripSkill_BookCar_user_input(self):
-        print(AlexaTestBuilder.create_test('test_sample', 'BookMyTripSkill', 'BookCar'))
+        print(AlexaTestBuilder().create_test('test_sample', 'BookMyTripSkill', 'BookCar'))
 
     def test_create_test_PlanMyTripSkill_PlanMyTrip_user_input(self):
-        print(AlexaTestBuilder.create_test('test_sample', 'PlanMyTripSkill', 'PlanMyTrip'))
+        print(AlexaTestBuilder().create_test('test_sample', 'PlanMyTripSkill', 'PlanMyTrip'))
 
     def test_create_test_PlanMyTripSkill_PlanMyTrip_no_intent_user_input(self):
-        print(AlexaTestBuilder.create_test('test_sample', 'PlanMyTripSkill'))
+        print(AlexaTestBuilder().create_test('test_sample', 'PlanMyTripSkill'))
 
     def test_sample(self):
         """

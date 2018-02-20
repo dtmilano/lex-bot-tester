@@ -21,10 +21,10 @@ import re
 import sys
 import unittest
 
-from com.dtmilano.aws.lex.conversation import Conversation, ConversationItem
-from com.dtmilano.aws.lex.lexbottest import LexBotTest
-from com.dtmilano.aws.lex.lexmodelsclient import LexModelsClient
-from com.dtmilano.aws.lex.lexruntimeclient import DialogState
+from lbt.aws.lex.conversation import Conversation, ConversationItem
+from lbt.aws.lex.lexbottest import LexBotTest
+from lbt.aws.lex.lexmodelsclient import LexModelsClient
+from lbt.aws.lex.lexruntimeclient import DialogState
 
 RE_DATE = re.compile('\d+-\d+-\d+')
 RE_WEEK = re.compile('\d+-w\d+')

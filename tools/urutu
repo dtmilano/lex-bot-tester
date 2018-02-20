@@ -19,8 +19,8 @@
 """
 import sys
 
-from com.dtmilano.aws.alexa.alexatestbuilder import AlexaTestBuilder
-from com.dtmilano.util.color import Color
+from lbt.aws.alexa.alexatestbuilder import AlexaTestBuilder
+from lbt.util.color import Color
 
 
 class Urutu(object):

@@ -1,7 +1,7 @@
 import unittest
 from tempfile import NamedTemporaryFile
 
-from lbt.aws.polly.pollyclient import PollyClient
+from lex_bot_tester.aws.polly.pollyclient import PollyClient
 
 
 class PollyClientTests(unittest.TestCase):

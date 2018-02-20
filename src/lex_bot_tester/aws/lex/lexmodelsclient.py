@@ -22,8 +22,8 @@ import sys
 
 import boto3
 
-from lbt.aws.lex.resultbase import ResultBase
-from lbt.util.conversion import to_snake_case
+from lex_bot_tester.aws.lex.resultbase import ResultBase
+from lex_bot_tester.util.conversion import to_snake_case
 
 DEBUG = False
 
@@ -32,7 +32,7 @@ def class_factory(name, arg_names, base_class=ResultBase):
     """
     Class factory.
 
-    Credit: https://stackoverflow.lbt/questions/15247075/how-can-i-dynamically-create-derived-classes-from-a-base-class
+    Credit: https://stackoverflow.lex_bot_tester/questions/15247075/how-can-i-dynamically-create-derived-classes-from-a-base-class
 
     :param name: the class name
     :param arg_names: the name of the arguments accepted by newly created class

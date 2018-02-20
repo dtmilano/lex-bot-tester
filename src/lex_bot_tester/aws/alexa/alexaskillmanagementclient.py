@@ -29,7 +29,7 @@ from time import sleep
 
 import requests
 
-from lbt.util.color import Color
+from lex_bot_tester.util.color import Color
 
 DOT_ALEXA_SKILLS = '.alexa_skills'
 HOME_DOT_ALEXA_SKILLS = str(pathlib.Path.home()) + '/' + DOT_ALEXA_SKILLS

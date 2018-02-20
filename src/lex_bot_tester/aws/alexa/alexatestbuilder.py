@@ -20,13 +20,13 @@ import datetime
 import sys
 import warnings
 
-from lbt.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
-from lbt.util.color import Color
+from lex_bot_tester.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
+from lex_bot_tester.util.color import Color
 
 
 class AlexaTestBuilder(object):
 
-    def __init__(self, generator='lbt', generation_language='python'):
+    def __init__(self, generator='lex_bot_tester', generation_language='python'):
         self.generator = generator
         self.generation_language = generation_language
 

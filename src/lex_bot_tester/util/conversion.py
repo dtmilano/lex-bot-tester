@@ -45,7 +45,7 @@ def number_to_words(n):
     :param n: the number
     :return: the words representing the number (i.e. forty one)
 
-    :see https://stackoverflow.lbt/questions/19504350/how-to-convert-numbers-to-words-in-python
+    :see https://stackoverflow.lex_bot_tester/questions/19504350/how-to-convert-numbers-to-words-in-python
     """
     num2words = {1: 'One', 2: 'Two', 3: 'Three', 4: 'Four', 5: 'Five',
                  6: 'Six', 7: 'Seven', 8: 'Eight', 9: 'Nine', 10: 'Ten',

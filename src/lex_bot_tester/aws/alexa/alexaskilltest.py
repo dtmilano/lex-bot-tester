@@ -21,7 +21,7 @@ from __future__ import print_function
 from time import sleep
 from unittest import TestCase
 
-from lbt.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient, SimulationResult
+from lex_bot_tester.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient, SimulationResult
 
 VERBOSE = False
 DEBUG = False

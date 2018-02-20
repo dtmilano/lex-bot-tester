@@ -22,11 +22,11 @@ import re
 import sys
 from unittest import TestCase
 
-from lbt.aws.lex.conversation import Conversation, ConversationItem
-from lbt.aws.lex.lexmodelsclient import LexModelsClient
-from lbt.aws.lex.lexruntimeclient import LexRuntimeClient, DialogState
-from lbt.util.color import Color
-from lbt.util.conversion import to_camel_case, to_snake_case
+from lex_bot_tester.aws.lex.conversation import Conversation, ConversationItem
+from lex_bot_tester.aws.lex.lexmodelsclient import LexModelsClient
+from lex_bot_tester.aws.lex.lexruntimeclient import LexRuntimeClient, DialogState
+from lex_bot_tester.util.color import Color
+from lex_bot_tester.util.conversion import to_camel_case, to_snake_case
 
 VERBOSE = False
 DEBUG = False

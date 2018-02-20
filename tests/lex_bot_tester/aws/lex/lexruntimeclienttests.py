@@ -18,7 +18,7 @@
 """
 import unittest
 
-from lbt.aws.lex.lexruntimeclient import LexRuntimeClient, DialogState
+from lex_bot_tester.aws.lex.lexruntimeclient import LexRuntimeClient, DialogState
 
 BOT_NAME = 'OrderFlowers'
 BOT_ALIAS = 'OrderFlowersLatest'

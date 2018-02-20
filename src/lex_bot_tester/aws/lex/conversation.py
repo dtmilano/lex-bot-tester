@@ -18,7 +18,7 @@
 """
 from six import string_types
 
-from lbt.aws.lex.resultbase import ResultBase
+from lex_bot_tester.aws.lex.resultbase import ResultBase
 
 
 class ConversationItem(object):

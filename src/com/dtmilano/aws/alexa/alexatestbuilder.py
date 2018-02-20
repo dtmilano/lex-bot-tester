@@ -46,8 +46,8 @@ class AlexaTestBuilder(object):
         samples = interaction_model.get_samples_by_intent(intent_name)
         invocation_name = interaction_model.get_invocation_name()
         conversation = [
-            {'slot': None, 'text': AlexaTestBuilder.__input_text('$launch_text', '{}\n\nLaunch ({})'.format(
-                samples, invocation_name), simulated_input)}]
+            {'slot': None, 'text': AlexaTestBuilder.__input_text('$launch_text', 'Samples:\n{}\n\nLaunch ({})'.format(
+                Color.colorize('\n'.join(samples), Color.BRIGHT_BLACK), invocation_name), simulated_input)}]
         if invocation_name not in conversation[0]['text']:
             warnings.warn('Launch text does not include invocation name \'{}\''.format(invocation_name))
         slots = interaction_model.get_slots_by_intent(intent_name)

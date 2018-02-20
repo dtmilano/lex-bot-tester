@@ -213,7 +213,14 @@ class InteractionModel:
                 intents.append(i)
         if 'languageModel' in self.__interaction_model['interactionModel']:
             for i in self.__interaction_model['interactionModel']['languageModel']['intents']:
-                intents.append(i)
+                n = i['name']
+                found = False
+                for _i in intents:
+                    if n == _i['name']:
+                        found = True
+                        break
+                if not found:
+                    intents.append(i)
         return intents
 
     def get_intent(self, intent_name):

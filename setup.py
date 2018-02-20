@@ -14,7 +14,7 @@ except IOError:
     README = ''
 
 setup(name='lex-bot-tester',
-      version='0.9.10',
+      version='0.9.11',
       description='''lex-bot-tester is a library that simplifies the creation of Amazon Alexa Skills and AWS Lex Bot tests.''',
       long_description=README,
       license='GPL-3.0',
@@ -26,7 +26,7 @@ setup(name='lex-bot-tester',
       package_dir={'': 'src'},
       # package_data={'': ['*.png']},
       # include_package_data=True,
-      # scripts=[],
+      scripts=['tools/urutu'],
       classifiers=['Development Status :: 5 - Production/Stable',
                    # Indicate who your project is intended for
                    'Intended Audience :: Developers',

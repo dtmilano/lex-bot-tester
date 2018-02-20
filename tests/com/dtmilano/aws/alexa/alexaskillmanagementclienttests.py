@@ -67,8 +67,8 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
     def test_book_my_trip_reserve_a_car_learn(self):
         skill_name = 'BookMyTripSkill'
         intent = 'BookCar'
-        conversation = self.learn_conversation(skill_name, intent)
-        print(self.create_test('test_sample', skill_name, intent, conversation))
+        conversation = AlexaTestBuilder.learn_conversation(skill_name, intent)
+        print(AlexaTestBuilder().create_test('test_sample', skill_name, intent, conversation))
         self.conversation_text(skill_name, intent, conversation, verbose=True)
 
     def test_high_low_game(self):
@@ -198,7 +198,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         conversation = AlexaTestBuilder.learn_conversation(skill_name, intent, simulated_input)
         self.assertIsNotNone(conversation)
         test_name = 'test_sample'
-        test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
+        test_code = AlexaTestBuilder().create_test(test_name, skill_name, intent, conversation)
         self.assertIsNotNone(test_code)
         # noinspection PyCompatibility
         self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))
@@ -212,7 +212,7 @@ class AlexaSkillManagementClientTests(AlexaSkillTest):
         conversation = AlexaTestBuilder.learn_conversation(skill_name, intent)
         self.assertIsNotNone(conversation)
         test_name = 'test_sample'
-        test_code = AlexaTestBuilder.create_test(test_name, skill_name, intent, conversation)
+        test_code = AlexaTestBuilder().create_test(test_name, skill_name, intent, conversation)
         self.assertIsNotNone(test_code)
         # noinspection PyCompatibility
         self.assertRegex(test_code, re.compile('def {}\(self\):'.format(test_name)))

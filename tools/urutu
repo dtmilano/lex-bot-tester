@@ -20,6 +20,7 @@
 import sys
 
 from com.dtmilano.aws.alexa.alexatestbuilder import AlexaTestBuilder
+from com.dtmilano.util.color import Color
 
 
 class Urutu(object):
@@ -29,13 +30,21 @@ class Urutu(object):
     def main(args):
         if '--help' in args or '-H' in args:
             Urutu.help()
-        print('Generating test...')
-        atb = AlexaTestBuilder(generator='urutu', generation_language='python')
-        print(atb.create_test(*args))
+        if len(args) > 0:
+            cmd = args.pop()
+            if cmd == 'create-test':
+                print('-------------- Creating test -------------')
+                atb = AlexaTestBuilder(generator='urutu', generation_language='python')
+                print(Color.colorize(atb.create_test(*args), Color.CYAN))
+            else:
+                print('Invalid command: {}'.format(cmd), file=sys.stderr)
+                Urutu.help()
+        else:
+            Urutu.help()
 
     @staticmethod
     def help():
-        print('usage: {} [--help | -H] [method-name [skill-name [intent-name]]]'.format(Urutu.progname))
+        print('usage: {} [--help | -H] {{create-test [method-name [skill-name [intent-name]]]}}'.format(Urutu.progname))
         sys.exit(0)
 
 

@@ -600,8 +600,7 @@ to refresh it.""")
     def conversation_start(self, intent_name: str, conversation: [], verbose: bool, debug=False) -> None:
         if verbose:
             print('\n')
-            print("Start conversation")
-            print("------------------")
+            print('-------------------- Start Conversation --------------------')
         interaction_model = self.get_interaction_model()
         self.fill_prompts_in_conversation(conversation, intent_name, interaction_model)
         if debug:

@@ -89,8 +89,7 @@ class AlexaSkillTest(TestCase):
         self.assertIsNotNone(simulation_result)
         self.assertTrue(simulation_result.is_fulfilled())
         if verbose:
-            print('Simulation Result')
-            print('-----------------')
+            print('-------------------- Simulation Result --------------------')
         for s in simulation_result.get_slots():
             value = simulation_result.get_slot_value(s)
             self.assertIsNotNone(value)

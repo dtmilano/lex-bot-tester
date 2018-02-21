@@ -24,11 +24,11 @@ import re
 import sys
 import unittest
 
-from com.dtmilano.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
-from com.dtmilano.aws.alexa.alexaskilltest import AlexaSkillTest
-from com.dtmilano.aws.alexa.alexatestbuilder import AlexaTestBuilder
-from com.dtmilano.util.color import Color
-from com.dtmilano.util.conversion import number_to_words
+from lex_bot_tester.aws.alexa.alexaskillmanagementclient import AlexaSkillManagementClient
+from lex_bot_tester.aws.alexa.alexaskilltest import AlexaSkillTest
+from lex_bot_tester.aws.alexa.alexatestbuilder import AlexaTestBuilder
+from lex_bot_tester.util.color import Color
+from lex_bot_tester.util.conversion import number_to_words
 
 DEBUG = False
 verbose = False

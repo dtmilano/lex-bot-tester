@@ -4,14 +4,14 @@
     <option name="PARENT_ENVS" value="true" />
     <envs />
     <option name="SDK_HOME" value="" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests/lex-bot-tester/dtmilano/aws/alexa" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/tests" />
     <option name="IS_MODULE_SDK" value="true" />
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <module name="lex-bot-tester" />
     <option name="_new_pattern" value="&quot;&quot;" />
     <option name="_new_additionalArguments" value="&quot;&quot;" />
-    <option name="_new_target" value="&quot;tests.com.dtmilano.aws.alexa.alexaskillmanagementclienttests.AlexaSkillManagementClientTests.test_plan_my_trip&quot;" />
+    <option name="_new_target" value="&quot;tests.lex_bot_tester.aws.alexa.alexaskillmanagementclienttests.AlexaSkillManagementClientTests.test_plan_my_trip&quot;" />
     <option name="_new_targetType" value="&quot;PYTHON&quot;" />
     <method />
   </configuration>

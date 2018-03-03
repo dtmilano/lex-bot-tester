@@ -331,6 +331,17 @@ to refresh it.""")
         print(r)
 
     def invocation(self, body_str, slot_values, verbose=False, debug=False):
+        """
+        The Skill Invocation API invokes the AWS Lambda or third-party HTTPS endpoint for a specified skill.
+        A successful response will contain information related to what endpoint was called, and the payload sent to and
+        received from the endpoint.
+
+        :param body_str: ASK request body schema as defined at `Request Body Syntax <https://developer.amazon.com/docs/custom-skills/request-and-response-json-reference.html#request-body-syntax>`_
+        :param slot_values:
+        :param verbose:
+        :param debug:
+        :return:
+        """
         method = Request.Method.POST
         request = '/v0/skills/{skillId}/invocations'.format(skillId=self.__skill_id)
         body_str = body_str.format(skillId=self.__skill_id, sessionId='SessionId.{}'.format(uuid.uuid4()),
@@ -457,6 +468,10 @@ to refresh it.""")
     def simulation(self, text: str, verbose: bool, debug: bool = False) -> SimulationResult:
         """
         Starts a simulation sending the specified text.
+
+        The Skill Simulation API is an asynchronous API that simulates a skill execution. A successful response will
+        contain a header with the location of the simulation resource. In cases where requests to this API results in
+        an error, the response will contain a description of the problem.
 
         :rtype: SimulationResult
         :param verbose: verbose output

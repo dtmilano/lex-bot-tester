@@ -1,0 +1,33 @@
+@startuml
+
+title AlexaSkillTest - Class Diagram
+
+
+class AlexaSkillManagementClient {
+    -ROOT;
+    +get_interaction_model();
+    +simulation();
+    +conversation_start();
+    +SimulationResult conversation_step();
+    +conversation_end();
+}
+
+class TestCase {
+}
+
+class SimulationResult {
+    +get_slots();
+    +get_slot_value();
+    +is_fulfilled();
+}
+
+class AlexaSkillTest {
+    +SimulationResult conversation_text(conversation);
+    +void assertSimulationResultIsCorrect();
+}
+
+TestCase <|-down- AlexaSkillTest
+AlexaSkillTest -left-> SimulationResult
+AlexaSkillTest -right-> AlexaSkillManagementClient
+
+@enduml

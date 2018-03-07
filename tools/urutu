@@ -18,6 +18,7 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 """
 from __future__ import print_function
+
 import sys
 
 from lex_bot_tester.aws.alexa.alexatestbuilder import AlexaTestBuilder
@@ -26,6 +27,7 @@ from lex_bot_tester.util.color import Color
 
 class Urutu(object):
     progname = 'urutu'
+    usage_str = 'usage: {} [--help | -H] {{create-test [method-name [skill-name [intent-name]]]}}'.format(progname)
 
     @staticmethod
     def main(args):
@@ -44,8 +46,15 @@ class Urutu(object):
             Urutu.help()
 
     @staticmethod
+    def usage():
+        print(Urutu.usage_str)
+        sys.exit(1)
+
+    @staticmethod
     def help():
-        print('usage: {} [--help | -H] {{create-test [method-name [skill-name [intent-name]]]}}'.format(Urutu.progname))
+        print(Urutu.usage_str)
+        print()
+        print('create-test: creates a test by interacting with the skill')
         sys.exit(0)
 
 

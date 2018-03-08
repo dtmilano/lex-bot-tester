@@ -174,7 +174,7 @@ class InteractionModel:
                     prompts[s.get_name()] = v
         return prompts
 
-    def print(self, file=sys.stdout):
+    def do_print(self, file=sys.stdout):
         pprint(self.__interaction_model, stream=file)
         print(self.str(), file=file)
 

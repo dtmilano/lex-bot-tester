@@ -58,7 +58,7 @@ class AlexaTestBuilder(object):
                 conversation.append({'slot': s.get_name(), 'text': None})
         else:
             warnings.warn('slots is empty for intent={}'.format(intent_name))
-            interaction_model.print(file=sys.stderr)
+            interaction_model.do_print(file=sys.stderr)
         asmc.fill_prompts_in_conversation(conversation, intent_name, interaction_model)
         for c in conversation:
             if c['slot']:
